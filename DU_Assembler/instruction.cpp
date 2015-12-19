@@ -218,3 +218,51 @@ void instr_CVRT::execute(ProgramData& prg_data)
 		prg_data.I_register->at(store_) = (int)(prg_data.F_register->at(pos_));
 	}
 }
+
+bool instr_CMP::do_relation(float a, float b)
+{
+	switch (relation_type)
+	{
+	case eq:
+		return a == b;
+		break;
+	case ne:
+		return a != b;
+		break;
+	case gt:
+		return a > b;
+		break;
+	case lt:
+		return a < b;
+		break;
+	case ge:
+		return a >= b;
+		break;
+	case le:
+		return a <= b;
+		break;
+	default:
+		return false;
+		break;
+	}
+}
+
+void instr_CMP::execute(ProgramData& prg_data)
+{
+	bool pred1_value;
+	float a, b;
+	if (num_type_ == integer)
+	{		
+		a = (float)prg_data.I_register->at(arg1_);
+		b = (float)prg_data.I_register->at(arg2_);
+	}
+	else
+	{
+		a = prg_data.F_register->at(arg1_);
+		b = prg_data.F_register->at(arg2_);
+	}
+	pred1_value = do_relation((float)a, (float)b);
+
+	prg_data.P_register->at(pred1_) = pred1_value;
+	prg_data.P_register->at(pred2_) = !pred1_value;
+}

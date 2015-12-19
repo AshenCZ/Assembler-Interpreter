@@ -17,6 +17,7 @@ using navestiPtr = std::unique_ptr< std::unordered_map<std::string, int> >;
 enum number_type { integer, floating };
 enum ldst_type { load, store };
 enum io_type { in, out };
+enum cmp_type { eq, ne, gt, lt, ge, le};
 
 ///TODO: no constructor and shit!
 class ProgramData
@@ -161,6 +162,31 @@ public:
 	instr_CVRT() : instruction(), num_type_(integer), pos_(0), store_(0) {};
 	instr_CVRT(int cond, number_type nt, int p, int s) : instruction(cond),num_type_(nt), pos_(p), store_(s) {};
 	void execute(ProgramData& prg_data);
+};
+
+class instr_CMP : public instruction
+{
+	protected:
+		int pred1_;
+		int pred2_;
+		int arg1_;
+		int arg2_;
+		number_type num_type_;
+		cmp_type relation_type;
+
+		bool do_relation(float a, float b);
+	public:
+		void execute(ProgramData& prg_data);
+		instr_CMP() : instruction() {};
+		instr_CMP(int cond, int p1, int p2, int a1, int a2, number_type nt, cmp_type rel) : instruction(cond)
+		{
+			pred1_ = p1;
+			pred2_ = p2;
+			arg1_ = a1;
+			arg2_ = a2;
+			num_type_ = nt;
+			relation_type = rel;
+		}
 };
 
 #endif

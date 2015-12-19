@@ -101,7 +101,7 @@ int main(int argc, char**argv)
 	vec.push_back(move(make_unique<instr_LDC>(1,integer,254,987)));
 	vec.push_back(move(make_unique<instr_LDC>(1, floating, 254, (float)987.5)));
 	vec.push_back(move(make_unique<instr_IO>(1, integer, out, 20)));
-	vec.push_back(move(make_unique<instr_IO>(1, integer, in, 20)));
+	/*vec.push_back(move(make_unique<instr_IO>(1, integer, in, 20)));
 	vec.push_back(move(make_unique<instr_IO>(1, integer, out, 20)));
 
 	vec.push_back(move(make_unique<instr_IO>(1, integer, in, 110)));
@@ -112,6 +112,15 @@ int main(int argc, char**argv)
 
 	vec.push_back(move(make_unique<instr_IO>(1, integer, out, 111)));
 	vec.push_back(move(make_unique<instr_IO>(1, floating, out, 211)));
+	*/
+	vec.push_back(move(make_unique<instr_IO>(1, floating, in, 220)));
+	vec.push_back(move(make_unique<instr_IO>(1, floating, in, 221)));
+	vec.push_back(move(make_unique<instr_CMP>(1, 100,101, 220,221,floating, eq)));
+	vec.push_back(move(make_unique<instr_CMP>(1, 102, 103, 220, 221, floating, ne)));
+	vec.push_back(move(make_unique<instr_CMP>(1, 104, 105, 220, 221, floating, ge)));
+	vec.push_back(move(make_unique<instr_CMP>(1, 106, 107, 220, 221, floating, gt)));
+	vec.push_back(move(make_unique<instr_CMP>(1, 108, 109, 220, 221, floating, le)));
+	vec.push_back(move(make_unique<instr_CMP>(1, 110, 111, 220, 221, floating, lt)));
 
 	ProgramData prg;
 	prg.I_register = std::make_unique<std::vector<int> >(256);
@@ -131,7 +140,7 @@ int main(int argc, char**argv)
 	prg.F_register->at(121) = 666;
 
 
-	prg.P_register = std::make_unique<std::vector<bool> >(10);
+	prg.P_register = std::make_unique<std::vector<bool> >(256);
 	prg.P_register->at(1) = true;
 
 	prg.navesti = std::make_unique< std::unordered_map<std::string, int> >();
@@ -163,6 +172,12 @@ int main(int argc, char**argv)
 	cout << endl << prg.F_register->at(254);
 
 	cout << endl << prg.F_register->at(211) << endl;
+	cout << endl << endl << "EQ " << (bool)prg.P_register->at(100) << " " << (bool)prg.P_register->at(101) << endl;
+	cout << "NE " << (bool)prg.P_register->at(102) << " " << (bool)prg.P_register->at(103) << endl;
+	cout << "GE " << (bool)prg.P_register->at(104) << " " << (bool)prg.P_register->at(105) << endl;
+	cout << "GT " << (bool)prg.P_register->at(106) << " " << (bool)prg.P_register->at(107) << endl;
+	cout << "LE " << (bool)prg.P_register->at(108) << " " << (bool)prg.P_register->at(109) << endl;
+	cout << "LT " << (bool)prg.P_register->at(110) << " " << (bool)prg.P_register->at(111) << endl;
 	return 0;
 }
 
