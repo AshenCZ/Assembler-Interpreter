@@ -47,7 +47,8 @@ instruction parse_line(string line)
 	// actually parsing
 	// ...
 
-	return move(parsed);
+	// no returning by forcing std::move(), we are letting the compiler do what he thinks is best
+	return parsed;
 }
 
 void read_input(file_resource& in, vector<instruction>& out_vec)
@@ -76,6 +77,7 @@ int main(int argc, char**argv)
 	vector<instruction> asmb_instructions(100);
 	read_input(inFile, asmb_instructions);
 
+	cout << "Parsing is complete. ---------- " << endl;
 	// precompile
 	// ...
 

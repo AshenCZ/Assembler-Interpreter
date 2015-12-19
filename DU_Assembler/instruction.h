@@ -30,17 +30,17 @@ public:
 	ProgramData() = default;
 	ProgramData(int a, int b, int c)
 	{
-		navesti = make_unique<std::unordered_map<std::string, int>>();
-		I_register = make_unique<std::vector<int>>(a);
-		F_register = make_unique<std::vector<float>>(b);
-		P_register = make_unique<std::vector<bool>>(c);
+		navesti = std::make_unique<std::unordered_map<std::string, int> >();
+		I_register = std::make_unique<std::vector<int> >(a);
+		F_register = std::make_unique<std::vector<float> >(b);
+		P_register = std::make_unique<std::vector<bool> >(c);
 	}
 	ProgramData(int a, int b, int c, navestiPtr p)
 	{
 		navesti = std::move(p);
-		I_register = make_unique<std::vector<int>>(a);
-		F_register = make_unique<std::vector<float>>(b);
-		P_register = make_unique<std::vector<bool>>(c);
+		I_register = std::make_unique<std::vector<int>>(a);
+		F_register = std::make_unique<std::vector<float>>(b);
+		P_register = std::make_unique<std::vector<bool>>(c);
 	}
 };
 

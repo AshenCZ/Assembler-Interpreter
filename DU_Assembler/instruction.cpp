@@ -120,14 +120,24 @@ void instr_LDST::store(std::vector<int>*  vec)
 	if (load_or_store == load)
 	{
 		// load LD R15 = [R20]
-		int from = vec->at(arg_); // R20 = 110
+		int from = (int)vec->at(arg_); // R20 = 110
+		if (from > 255)
+		{
+			std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
+			return;
+		}
 		vec->at(store_) = vec->at(from); // R15 = [110] 
 		
 	}
 	else
 	{
 		// store ST [R33] = R55
-		int to = vec->at(store_); // R33 = 77
+		int to = (int)vec->at(store_); // R33 = 77
+		if (to > 255)
+		{
+			std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
+			return;
+		}
 		vec->at(to) = vec->at(arg_); // R15 = [110] 
 	}
 }
@@ -136,14 +146,24 @@ void instr_LDST::store(std::vector<float>*  vec)
 	if (load_or_store == load)
 	{
 		// load LD R15 = [R20]
-		int from = vec->at(arg_); // R20 = 110
+		int from = (int)vec->at(arg_); // R20 = 110
+		if (from > 255)
+		{
+			std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
+			return;
+		}
 		vec->at(store_) = vec->at(from); // R15 = [110] 
 
 	}
 	else
 	{
 		// store ST [R33] = R55
-		int to = vec->at(store_); // R33 = 77
+		int to = (int)vec->at(store_); // R33 = 77
+		if (to > 255)
+		{
+			std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
+			return;
+		}
 		vec->at(to) = vec->at(arg_); // R15 = [110] 
 	}
 }
