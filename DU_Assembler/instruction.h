@@ -21,7 +21,7 @@ enum cmp_type { eq, ne, gt, lt, ge, le};
 class ProgramData
 {
 public:
-	int prg_counter;
+	unsigned int prg_counter;
 	navestiPtr navesti;
 	boolVecPtr P_register;
 	intVecPtr I_register;
