@@ -6,8 +6,8 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
-#include "instruction.h"
 
+#include "instruction.h"
 
 using namespace std;
 
@@ -101,7 +101,7 @@ int main(int argc, char**argv)
 	vec.push_back(move(make_unique<instr_LDC>(1,integer,254,987)));
 	vec.push_back(move(make_unique<instr_LDC>(1, floating, 254, (float)987.5)));
 	vec.push_back(move(make_unique<instr_IO>(1, integer, out, 20)));
-	/*vec.push_back(move(make_unique<instr_IO>(1, integer, in, 20)));
+	vec.push_back(move(make_unique<instr_IO>(1, integer, in, 20)));
 	vec.push_back(move(make_unique<instr_IO>(1, integer, out, 20)));
 
 	vec.push_back(move(make_unique<instr_IO>(1, integer, in, 110)));
@@ -112,7 +112,7 @@ int main(int argc, char**argv)
 
 	vec.push_back(move(make_unique<instr_IO>(1, integer, out, 111)));
 	vec.push_back(move(make_unique<instr_IO>(1, floating, out, 211)));
-	*/
+	
 	vec.push_back(move(make_unique<instr_IO>(1, floating, in, 220)));
 	vec.push_back(move(make_unique<instr_IO>(1, floating, in, 221)));
 	vec.push_back(move(make_unique<instr_CMP>(1, 100,101, 220,221,floating, eq)));
