@@ -57,10 +57,10 @@ float instr_DIV::do_operation(float a, float b, bool& s)
 }
 
 void instr_Binary::execute(ProgramData& prg_data)
-{
-	std::cout << "BInary\n";
+{	
 	if ((*prg_data.P_register)[condition_])
 	{
+		std::cout << "Binary\n";
 
 		if (num_type == integer)
 		{
@@ -85,8 +85,7 @@ void instr_Binary::execute(ProgramData& prg_data)
 			
 			bool success;
 			float result = do_operation(a, b,success);
-			
-			if(success)
+			if (success)
 				prg_data.F_register->at(store_) = result;
 			else
 			{
@@ -100,18 +99,25 @@ void instr_Binary::execute(ProgramData& prg_data)
 			throw(std::exception()); ///TODO Add exception
 		}
 	}
+	else
+	{
+		std::cout << "Binary not, because predicate.\n";
+	}
 }
 
 void instr_JMP::execute(ProgramData& prg_data)
 {
-	std::cout << "Jumping to " << where_to_jump_ << std::endl;
-	// find where to jump and if the condition applies, jump
-	auto ret = prg_data.navesti->find(where_to_jump_);
-
-	if (ret != prg_data.navesti->end())
+	if ((*prg_data.P_register)[condition_])
 	{
-		if ((*prg_data.P_register)[condition_])
-			prg_data.prg_counter = ret->second;
+		std::cout << "Jumping to " << where_to_jump_ << std::endl;
+		// find where to jump and if the condition applies, jump
+		auto ret = prg_data.navesti->find(where_to_jump_);
+
+		if (ret != prg_data.navesti->end())
+		{
+			if ((*prg_data.P_register)[condition_])
+				prg_data.prg_counter = ret->second;
+		}
 	}
 }
 
@@ -169,25 +175,31 @@ void instr_LDST::store(std::vector<float>*  vec)
 }
 void instr_LDST::execute(ProgramData& prg_data)
 {
-	if (num_type == integer)
+	if ((*prg_data.P_register)[condition_])
 	{
-		store(prg_data.I_register.get());
+		if (num_type == integer)
+		{
+			store(prg_data.I_register.get());
+		}
+		else
+		{
+			store(prg_data.F_register.get());
+		}
 	}
-	else
-	{
-		store(prg_data.F_register.get());
-	}	
 }
 
 void instr_LDC::execute(ProgramData &prg_data)
 {
-	if (num_type == integer)
+	if ((*prg_data.P_register)[condition_])
 	{
-		prg_data.I_register->at(store_) = i_constant;
-	}
-	else if (num_type == floating)
-	{
-		prg_data.F_register->at(store_) = f_constant;
+		if (num_type == integer)
+		{
+			prg_data.I_register->at(store_) = i_constant;
+		}
+		else if (num_type == floating)
+		{
+			prg_data.F_register->at(store_) = f_constant;
+		}
 	}
 }
 
@@ -217,25 +229,31 @@ void instr_IO::do_IO(std::vector<int> * vec)
 }
 void instr_IO::execute(ProgramData& prg_data)
 {
-	if (num_type == integer)
+	if ((*prg_data.P_register)[condition_])
 	{
-		do_IO(prg_data.I_register.get());
-	}
-	else if (num_type == floating)
-	{
-		do_IO(prg_data.F_register.get());
+		if (num_type == integer)
+		{
+			do_IO(prg_data.I_register.get());
+		}
+		else if (num_type == floating)
+		{
+			do_IO(prg_data.F_register.get());
+		}
 	}
 }
 
 void instr_CVRT::execute(ProgramData& prg_data)
 {
-	if (num_type_ == integer)
+	if ((*prg_data.P_register)[condition_])
 	{
-		prg_data.F_register->at(store_) = (float)(prg_data.I_register->at(pos_));
-	}
-	else if (num_type_ == floating)
-	{
-		prg_data.I_register->at(store_) = (int)(prg_data.F_register->at(pos_));
+		if (num_type_ == integer)
+		{
+			prg_data.F_register->at(store_) = (float)(prg_data.I_register->at(pos_));
+		}
+		else if (num_type_ == floating)
+		{
+			prg_data.I_register->at(store_) = (int)(prg_data.F_register->at(pos_));
+		}
 	}
 }
 
@@ -269,20 +287,23 @@ bool instr_CMP::do_relation(float a, float b)
 
 void instr_CMP::execute(ProgramData& prg_data)
 {
-	bool pred1_value;
-	float a, b;
-	if (num_type_ == integer)
-	{		
-		a = (float)prg_data.I_register->at(arg1_);
-		b = (float)prg_data.I_register->at(arg2_);
-	}
-	else
+	if ((*prg_data.P_register)[condition_])
 	{
-		a = prg_data.F_register->at(arg1_);
-		b = prg_data.F_register->at(arg2_);
-	}
-	pred1_value = do_relation((float)a, (float)b);
+		bool pred1_value;
+		float a, b;
+		if (num_type_ == integer)
+		{
+			a = (float)prg_data.I_register->at(arg1_);
+			b = (float)prg_data.I_register->at(arg2_);
+		}
+		else
+		{
+			a = prg_data.F_register->at(arg1_);
+			b = prg_data.F_register->at(arg2_);
+		}
+		pred1_value = do_relation((float)a, (float)b);
 
-	prg_data.P_register->at(pred1_) = pred1_value;
-	prg_data.P_register->at(pred2_) = !pred1_value;
+		prg_data.P_register->at(pred1_) = pred1_value;
+		prg_data.P_register->at(pred2_) = !pred1_value;
+	}
 }

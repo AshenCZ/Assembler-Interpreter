@@ -30,6 +30,7 @@ public:
 	ProgramData() = default;
 	ProgramData(int a, int b, int c)
 	{
+		prg_counter = 0;
 		navesti = std::make_unique<std::unordered_map<std::string, int> >();
 		I_register = std::make_unique<std::vector<int> >(a);
 		F_register = std::make_unique<std::vector<float> >(b);
@@ -37,10 +38,15 @@ public:
 	}
 	ProgramData(int a, int b, int c, navestiPtr p)
 	{
+		prg_counter = 0;
 		navesti = std::move(p);
 		I_register = std::make_unique<std::vector<int>>(a);
 		F_register = std::make_unique<std::vector<float>>(b);
 		P_register = std::make_unique<std::vector<bool>>(c);
+	}
+	void init()
+	{
+		P_register->at(1) = true;
 	}
 };
 
@@ -52,6 +58,7 @@ class instruction
 		virtual ~instruction() = default;
 
 		virtual void execute(ProgramData& prg_data) { std::cout << "huhueahehahe" << std::endl; }
+		int get_condition() { return condition_; }
 
 	protected:
 		int condition_; // do this is Px
@@ -67,7 +74,7 @@ class instr_Binary : public instruction
 		// does this matter?
 		//	virtual ~instr_Binary() = default;
 		instr_Binary() : instruction(), num_type(integer), store_(-1), arg1_(-1), arg2_(-1) {};
-		instr_Binary(int cond, number_type t, int s, int a1, int a2) : instruction(), num_type(t), store_(s), arg1_(a1), arg2_(a2) {};
+		instr_Binary(int cond, number_type t, int s, int a1, int a2) : instruction(cond), num_type(t), store_(s), arg1_(a1), arg2_(a2) {};
 		virtual int do_operation(int a, int b, bool& s) { return 0; }
 		virtual float do_operation(float a, float b, bool& s) { return 0;  }
 		void execute(ProgramData& prg_data);
