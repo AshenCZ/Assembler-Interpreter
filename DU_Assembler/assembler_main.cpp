@@ -39,6 +39,7 @@ class file_resource
 		}
 };
 
+// Two helper announcement methods, line_cannot_be_parsed and catch statement are the only places where fail is set.
 void line_cannot_be_parsed(bool& fail, string message)
 {
 	fail = true;
@@ -52,6 +53,7 @@ void wrong_arguments(string instr, int num, int line_number, bool& fail)
 	line_cannot_be_parsed(fail, a);
 }
 
+// reads string and returns a valid condition, or sets fail on failiure
 int return_condition(string condition, int line_number, bool fail)
 {
 	int cond = 1;
@@ -67,6 +69,7 @@ int return_condition(string condition, int line_number, bool fail)
 	return cond;
 }
 
+// Tokenizes one line (splits)
 int tokenize(string line, string (&words)[200]) 
 {
 	int word_count = 0;
@@ -97,6 +100,17 @@ int tokenize(string line, string (&words)[200])
 			word = "";
 			word_count++;
 		}
+		else if (line[i] == ';' && word.length() != 0) // no more spaces, we enter the next mode
+		{
+			words[word_count] = word;
+			word = "";
+			word_count++;
+			break;
+		}
+		else if (line[i] == ';' && word.length() == 0) // no more spaces, we enter the next mode
+		{
+			break;
+		}
 		else if (line[i] == '=' && word.length() == 0) // no more spaces, we enter the next mode
 		{
 			continue;
@@ -119,9 +133,19 @@ int tokenize(string line, string (&words)[200])
 	return word_count;
 }
 
+/* Parses one line, by:
+	- tokenizing the line into strings (basically split)
+	- solving navesti and predicate statements
+	- recognizing the command and reading and checking its parameters
+*/
 unique_ptr< instruction> parse_line(string line, int line_number, std::unordered_map<std::string, int>& navesti_given, std::vector<string>& navesti_needed, int instr_number, bool& fail)
 {
-	//cout << "\n(" << line_number << "): " << line << endl;
+	// convert all to uppercase
+	for (size_t i = 0; i < line.length(); i++)
+	{
+		line[i] = toupper(line[i]);
+	}
+
 	string navesti = "";
 	string cmd = "";
 
@@ -260,7 +284,8 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 			else if (command_conditionless == "OUT")
 				return make_unique<instr_IO>(cond, nt, out, iarg);
 		}
-		else if (command_conditionless == "LDC" || command_conditionless == "ST" || command_conditionless == "LD")
+		else if (command_conditionless == "LDC" || command_conditionless == "ST" ||
+			command_conditionless == "LD")
 		{
 			if (number_arguments != 2)
 			{
@@ -449,6 +474,7 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 	return make_unique<instruction>(-1);
 }
 
+// Calls parse_line on each line, exits if failure happened, pushes the instructions into the proper vector
 bool read_input(file_resource& in, vector< unique_ptr< instruction > >& out_vec, std::unordered_map<std::string, int>& navesti_given, std::vector<string>& navesti_needed)
 {
 	bool fail = false;
@@ -530,7 +556,7 @@ int main(int argc, char**argv)
 		if (program_data.P_register->at(1) != true)
 			program_data.P_register->at(1) = true;
 	}
-
+	
 	cout << "\n>> The end.\n\n";
 	return 0;
 }

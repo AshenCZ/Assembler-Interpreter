@@ -1,0 +1,11 @@
+ldc r0 =0
+ldc r1 = 1
+ldc r11 = 1
+
+in r10 ; factorial of N
+
+z: mul r11 = r11,r10  ; f = f*i
+sub r10 = r10,r1      ; i--
+cmpgt p2,p3 = r10,r0  ; if i > 0
+jmp.p2 z              ;
+out r11

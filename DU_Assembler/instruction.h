@@ -71,6 +71,7 @@ class instr_Binary : public instruction
 		int store_;
 		int arg1_, arg2_;
 	public:
+		///TODO LEARN about destructors!
 		// does this matter?
 		//	virtual ~instr_Binary() = default;
 		instr_Binary() : instruction(), num_type(integer), store_(-1), arg1_(-1), arg2_(-1) {};
