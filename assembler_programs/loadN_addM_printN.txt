@@ -1,0 +1,54 @@
+; const
+ldc r0 = 0
+ldc r1 = 1
+ldc r100 = 7
+; promenne
+ldc r11 = 0 ; zacatek
+in r12 ; pocet prvku k nacteni
+add r13 = r11,r0 ; iterator
+
+ldc r17 = 0 ; iterinput
+ldc r18 = 25 ; kam je uklada
+
+; NACITA
+;for cyklus s +1
+for: out r13
+  in r17
+  add r19 = r18,r13
+  st [r19] = r17
+  ; ^telo, dal uz je rezie
+add r13 = r13,r1 ; i++
+cmplt p2,p3 = r13,r12 ;for cycle up^
+jmp.p2 for
+
+in r100
+; PREDELAVA
+; promenne
+ldc r41 = 0 ; zacatek
+add r42 = r12,r0 ; konec
+add r43 = r41,r0 ; iterator
+
+;for cyklus s +1
+for3: add r50 = r43,r18
+  ld r51 = [r50]
+  add r51 = r51, r100
+  st [r50] = r51
+  ; telo, dal uz je rezie
+add r43 = r43,r1 ; i++
+cmplt p10,p11 = r43,r42 ;for cycle up^
+jmp.p10 for3
+
+; VYPISUJE
+; promenne
+add r21 = r11,r0 ; zacatek
+add r22 = r12,r0 ; konec
+add r23 = r11,r0 ; iterator
+
+;for cyklus s +1
+for2: add r33 = r23,r18
+  ld r34 = [r33]
+  out r34
+  ; telo, dal uz je rezie
+add r23 = r23,r1 ; i++
+cmplt p4,p5 = r23,r22 ;for cycle up^
+jmp.p4 for2
