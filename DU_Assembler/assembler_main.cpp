@@ -545,8 +545,15 @@ int main(int argc, char**argv)
 	while (program_data.prg_counter < asmb_instructions.size())
 	{
 		int tmp = program_data.prg_counter;
-		asmb_instructions[program_data.prg_counter]->execute(program_data);
-
+		try
+		{
+			asmb_instructions[program_data.prg_counter]->execute(program_data);
+		}
+		catch (assembler_exception e)
+		{
+			cout << e.what_failed << " Exit." << endl;
+			return 0;
+		}
 		if(tmp == program_data.prg_counter)
 			program_data.prg_counter++;
 

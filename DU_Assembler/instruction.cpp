@@ -74,7 +74,8 @@ void instr_Binary::execute(ProgramData& prg_data)
 				prg_data.I_register->at(store_) = result;			
 			else
 			{
-				std::cout << "Operation failed. Exit." << std::endl; ///TDOD WHERE FAILED??
+				std::cout << "Operation failed." << std::endl; ///TDOD WHERE FAILED??
+				throw(assembler_exception("DIV's arguments were " + std::to_string(a) + " / " + std::to_string(b)));
 				throw(std::exception()); ///TODO Add exception
 			}
 		}
@@ -89,7 +90,8 @@ void instr_Binary::execute(ProgramData& prg_data)
 				prg_data.F_register->at(store_) = result;
 			else
 			{
-				std::cout << "Operation failed. Exit." << std::endl;///TDOD WHERE FAILED??
+				std::cout << "Operation failed." << std::endl;///TDOD WHERE FAILED??
+				throw(assembler_exception("DIV's arguments were " + std::to_string(a) + " / " + std::to_string(b)));
 				throw(std::exception()); ///TODO Add exception
 			}
 		}
@@ -130,6 +132,7 @@ void instr_LDST::store(std::vector<int>*  vec)
 		if (from > 255)
 		{
 			std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
+			throw(assembler_exception("Index was " + std::to_string(from)));
 			return;
 		}
 		vec->at(store_) = vec->at(from); // R15 = [110] 
@@ -142,6 +145,7 @@ void instr_LDST::store(std::vector<int>*  vec)
 		if (to > 255)
 		{
 			std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
+			throw(assembler_exception("Index was " + std::to_string(to)));
 			return;
 		}
 		vec->at(to) = vec->at(arg_); // R15 = [110] 
@@ -156,6 +160,7 @@ void instr_LDST::store(std::vector<float>*  vec)
 		if (from > 255)
 		{
 			std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
+			throw(assembler_exception("Index was " + std::to_string(from)));
 			return;
 		}
 		vec->at(store_) = vec->at(from); // R15 = [110] 
@@ -168,6 +173,7 @@ void instr_LDST::store(std::vector<float>*  vec)
 		if (to > 255)
 		{
 			std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
+			throw(assembler_exception("Index was " + std::to_string(to)));
 			return;
 		}
 		vec->at(to) = vec->at(arg_); // R15 = [110] 

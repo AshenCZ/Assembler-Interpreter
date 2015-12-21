@@ -18,6 +18,14 @@ enum ldst_type { load, store };
 enum io_type { in, out };
 enum cmp_type { eq, ne, gt, lt, ge, le};
 
+class assembler_exception : std::exception
+{
+public:
+	std::string what_failed;
+	assembler_exception() : std::exception(), what_failed("nic") {};
+	assembler_exception(std::string w) : std::exception(), what_failed(w) {};
+};
+
 class ProgramData
 {
 public:
