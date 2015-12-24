@@ -1,112 +1,5 @@
 #include "instruction.h"
 
-int instr_ADD::do_operation(int a, int b,bool& s)
-{
-	s = true;
-	return a + b;
-}
-float instr_ADD::do_operation(float a, float b, bool& s)
-{
-	s = true;
-	return a + b;
-}
-
-int instr_SUB::do_operation(int a, int b, bool& s)
-{
-	s = true;
-	return a - b;
-}
-float instr_SUB::do_operation(float a, float b, bool& s)
-{
-	s = true;
-	return a - b;
-}
-
-int instr_MUL::do_operation(int a, int b, bool& s)
-{
-	s = true;
-	return a * b;
-}
-float instr_MUL::do_operation(float a, float b, bool& s)
-{
-	s = true;
-	return a * b;
-}
-
-int instr_DIV::do_operation(int a, int b, bool& s)
-{
-	if (b == 0)
-	{
-		s = false;
-		return -1;
-	}
-
-	s = true;
-	return a / b;
-}
-float instr_DIV::do_operation(float a, float b, bool& s)
-{
-	if (b == 0)
-	{
-		s = false;
-		return -1;
-	}
-
-	s = true;
-	return a / b;
-}
-
-void instr_Binary::execute(ProgramData& prg_data)
-{	
-	if ((*prg_data.P_register)[condition_])
-	{
-		std::cout << "Binary\n";
-
-		if (num_type == integer)
-		{
-			int a = prg_data.I_register->at(arg1_);
-			int b = prg_data.I_register->at(arg2_);
-
-			bool success;
-			int result = do_operation(a, b, success);
-			
-			if(success)
-				prg_data.I_register->at(store_) = result;			
-			else
-			{
-				std::cout << "Operation failed." << std::endl; ///TDOD WHERE FAILED??
-				throw(assembler_exception("DIV's arguments were " + std::to_string(a) + " / " + std::to_string(b)));
-				throw(std::exception()); ///TODO Add exception
-			}
-		}
-		else if (num_type == floating)
-		{
-			float a = prg_data.F_register->at(arg1_);
-			float b = prg_data.F_register->at(arg2_);
-			
-			bool success;
-			float result = do_operation(a, b,success);
-			if (success)
-				prg_data.F_register->at(store_) = result;
-			else
-			{
-				std::cout << "Operation failed." << std::endl;///TDOD WHERE FAILED??
-				throw(assembler_exception("DIV's arguments were " + std::to_string(a) + " / " + std::to_string(b)));
-				throw(std::exception()); ///TODO Add exception
-			}
-		}
-		else
-		{
-			std::cout << "Unknown number type in instruction ADD/SUB/MUL/DIV, exit." << std::endl;
-			throw(std::exception()); ///TODO Add exception
-		}
-	}
-	else
-	{
-		std::cout << "Binary not, because predicate.\n";
-	}
-}
-
 void instr_JMP::execute(ProgramData& prg_data)
 {
 	if ((*prg_data.P_register)[condition_])
@@ -119,77 +12,6 @@ void instr_JMP::execute(ProgramData& prg_data)
 		{
 			if ((*prg_data.P_register)[condition_])
 				prg_data.prg_counter = ret->second;
-		}
-	}
-}
-
-void instr_LDST::store(std::vector<int>*  vec)
-{
-	if (load_or_store == load)
-	{
-		// load LD R15 = [R20]
-		int from = (int)vec->at(arg_); // R20 = 110
-		if (from > 255)
-		{
-			std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
-			throw(assembler_exception("Index was " + std::to_string(from)));
-			return;
-		}
-		vec->at(store_) = vec->at(from); // R15 = [110] 
-		
-	}
-	else
-	{
-		// store ST [R33] = R55
-		int to = (int)vec->at(store_); // R33 = 77
-		if (to > 255)
-		{
-			std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
-			throw(assembler_exception("Index was " + std::to_string(to)));
-			return;
-		}
-		vec->at(to) = vec->at(arg_); // R15 = [110] 
-	}
-}
-void instr_LDST::store(std::vector<float>*  vec)
-{
-	if (load_or_store == load)
-	{
-		// load LD R15 = [R20]
-		int from = (int)vec->at(arg_); // R20 = 110
-		if (from > 255)
-		{
-			std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
-			throw(assembler_exception("Index was " + std::to_string(from)));
-			return;
-		}
-		vec->at(store_) = vec->at(from); // R15 = [110] 
-
-	}
-	else
-	{
-		// store ST [R33] = R55
-		int to = (int)vec->at(store_); // R33 = 77
-		if (to > 255)
-		{
-			std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
-			throw(assembler_exception("Index was " + std::to_string(to)));
-			return;
-		}
-		vec->at(to) = vec->at(arg_); // R15 = [110] 
-	}
-}
-void instr_LDST::execute(ProgramData& prg_data)
-{
-	if ((*prg_data.P_register)[condition_])
-	{
-		if (num_type == integer)
-		{
-			store(prg_data.I_register.get());
-		}
-		else
-		{
-			store(prg_data.F_register.get());
 		}
 	}
 }
@@ -313,3 +135,182 @@ void instr_CMP::execute(ProgramData& prg_data)
 		prg_data.P_register->at(pred2_) = !pred1_value;
 	}
 }
+
+/*
+int instr_ADD::do_operation(int a, int b,bool& s)
+{
+s = true;
+return a + b;
+}
+float instr_ADD::do_operation(float a, float b, bool& s)
+{
+s = true;
+return a + b;
+}
+
+int instr_SUB::do_operation(int a, int b, bool& s)
+{
+s = true;
+return a - b;
+}
+float instr_SUB::do_operation(float a, float b, bool& s)
+{
+s = true;
+return a - b;
+}
+
+int instr_MUL::do_operation(int a, int b, bool& s)
+{
+s = true;
+return a * b;
+}
+float instr_MUL::do_operation(float a, float b, bool& s)
+{
+s = true;
+return a * b;
+}
+
+int instr_DIV::do_operation(int a, int b, bool& s)
+{
+if (b == 0)
+{
+s = false;
+return -1;
+}
+
+s = true;
+return a / b;
+}
+float instr_DIV::do_operation(float a, float b, bool& s)
+{
+if (b == 0)
+{
+s = false;
+return -1;
+}
+
+s = true;
+return a / b;
+}
+
+void instr_Binary::execute(ProgramData& prg_data)
+{
+if ((*prg_data.P_register)[condition_])
+{
+std::cout << "Binary\n";
+
+if (num_type == integer)
+{
+int a = prg_data.I_register->at(arg1_);
+int b = prg_data.I_register->at(arg2_);
+
+bool success;
+int result = do_operation(a, b, success);
+
+if(success)
+prg_data.I_register->at(store_) = result;
+else
+{
+std::cout << "Operation failed." << std::endl; ///TDOD WHERE FAILED??
+throw(assembler_exception("DIV's arguments were " + std::to_string(a) + " / " + std::to_string(b)));
+}
+}
+else if (num_type == floating)
+{
+float a = prg_data.F_register->at(arg1_);
+float b = prg_data.F_register->at(arg2_);
+
+bool success;
+float result = do_operation(a, b,success);
+if (success)
+prg_data.F_register->at(store_) = result;
+else
+{
+std::cout << "Operation failed." << std::endl;///TDOD WHERE FAILED??
+throw(assembler_exception("DIV's arguments were " + std::to_string(a) + " / " + std::to_string(b)));
+}
+}
+else
+{
+std::cout << "Unknown number type in instruction ADD/SUB/MUL/DIV, exit." << std::endl;
+throw(std::exception()); ///TODO Add exception
+}
+}
+else
+{
+std::cout << "Binary not, because predicate.\n";
+}
+}*/
+
+/*
+void instr_LDST::store(std::vector<int>*  vec)
+{
+if (load_or_store == load)
+{
+// load LD R15 = [R20]
+int from = (int)vec->at(arg_); // R20 = 110
+if (from > 255)
+{
+std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
+throw(assembler_exception("Index was " + std::to_string(from)));
+return;
+}
+vec->at(store_) = vec->at(from); // R15 = [110]
+
+}
+else
+{
+// store ST [R33] = R55
+int to = (int)vec->at(store_); // R33 = 77
+if (to > 255)
+{
+std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
+throw(assembler_exception("Index was " + std::to_string(to)));
+return;
+}
+vec->at(to) = vec->at(arg_); // R15 = [110]
+}
+}
+void instr_LDST::store(std::vector<float>*  vec)
+{
+if (load_or_store == load)
+{
+// load LD R15 = [R20]
+int from = (int)vec->at(arg_); // R20 = 110
+if (from > 255)
+{
+std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
+throw(assembler_exception("Index was " + std::to_string(from)));
+return;
+}
+vec->at(store_) = vec->at(from); // R15 = [110]
+
+}
+else
+{
+// store ST [R33] = R55
+int to = (int)vec->at(store_); // R33 = 77
+if (to > 255)
+{
+std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
+throw(assembler_exception("Index was " + std::to_string(to)));
+return;
+}
+vec->at(to) = vec->at(arg_); // R15 = [110]
+}
+}
+void instr_LDST::execute(ProgramData& prg_data)
+{
+if ((*prg_data.P_register)[condition_])
+{
+if (num_type == integer)
+{
+store(prg_data.I_register.get());
+}
+else
+{
+store(prg_data.F_register.get());
+}
+}
+}
+*/

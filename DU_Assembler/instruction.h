@@ -65,13 +65,17 @@ class instruction
 		instruction(int c) : condition_(c) {};
 		virtual ~instruction() = default;
 
-		virtual void execute(ProgramData& prg_data) { std::cout << "huhueahehahe" << std::endl; }
+		virtual void execute(ProgramData& prg_data)
+		{
+			if ((*prg_data.P_register)[condition_])
+				p_execute(prg_data);
+		}
 		int get_condition() { return condition_; }
 
 	protected:
 		int condition_; // do this is Px
+		virtual void p_execute(ProgramData& prg_data) { std::cout << "huhueahehahe" << std::endl; };
 };
-
 class instr_Binary : public instruction
 {
 	protected:
@@ -79,50 +83,15 @@ class instr_Binary : public instruction
 		int store_;
 		int arg1_, arg2_;
 	public:
-		///TODO LEARN about destructors!
-		// does this matter?
-		//	virtual ~instr_Binary() = default;
+		virtual ~instr_Binary() = default;
 		instr_Binary() : instruction(), num_type(integer), store_(-1), arg1_(-1), arg2_(-1) {};
 		instr_Binary(int cond, number_type t, int s, int a1, int a2) : instruction(cond), num_type(t), store_(s), arg1_(a1), arg2_(a2) {};
+	/*
+		//legacy
 		virtual int do_operation(int a, int b, bool& s) { return 0; }
 		virtual float do_operation(float a, float b, bool& s) { return 0;  }
-		void execute(ProgramData& prg_data);
-};
-
-class instr_ADD : public instr_Binary
-{
-	public:
-		instr_ADD() : instr_Binary() {};
-		instr_ADD(int cond, number_type t, int s, int a1, int a2) : instr_Binary(cond, t, s, a1, a2) {};		
-		 int do_operation(int a, int b, bool& s);
-		float do_operation(float a, float b, bool& s);
-};
-
-class instr_SUB : public instr_Binary
-{
-	public:
-		instr_SUB() : instr_Binary() {};
-		instr_SUB(int cond, number_type t, int s, int a1, int a2) : instr_Binary(cond, t, s, a1, a2) {};
-		virtual int do_operation(int a, int b, bool& s);
-		virtual float do_operation(float a, float b, bool& s);
-};
-
-class instr_MUL : public instr_Binary
-{
-	public:
-		instr_MUL() : instr_Binary() {};
-		instr_MUL(int cond, number_type t, int s, int a1, int a2) : instr_Binary(cond, t, s, a1, a2) {};
-		virtual int do_operation(int a, int b, bool& s);
-		virtual float do_operation(float a, float b, bool& s);
-};
-
-class instr_DIV : public instr_Binary
-{
-	public:
-		instr_DIV() : instr_Binary() {};
-		instr_DIV(int cond, number_type t, int s, int a1, int a2) : instr_Binary(cond, t, s, a1, a2) {};
-		virtual int do_operation(int a, int b, bool& s);
-		virtual float do_operation(float a, float b, bool& s);
+		virtual void execute(ProgramData& prg_data);
+	*/
 };
 
 class instr_JMP : public instruction
@@ -134,22 +103,6 @@ class instr_JMP : public instruction
 		instr_JMP(std::string w, int cond) : instruction(cond), where_to_jump_(w) {};
 		virtual ~instr_JMP() = default;
 		virtual void execute(ProgramData& prg_data);
-};
-
-class instr_LDST : public instruction
-{
-	protected:
-		number_type num_type;
-		ldst_type load_or_store;
-		int store_;
-		int arg_;
-	public:
-		instr_LDST() : instruction(), num_type(integer), store_(-1), arg_(-1) {};
-		instr_LDST(int cond, ldst_type ls, number_type t, int s, int a) : instruction(cond), load_or_store(ls), num_type(t), store_(s), arg_(a) {};
-		void execute(ProgramData& prg_data);
-	private:
-		void instr_LDST::store(std::vector<int>* vec);
-		void instr_LDST::store(std::vector<float>*  vec);
 };
 
 class instr_LDC : public instruction
@@ -219,4 +172,192 @@ class instr_CMP : public instruction
 		}
 };
 
+// Template policies
+struct FL
+{
+	typedef float vtype;
+	static void push(ProgramData& cntx, vtype a, int s)
+	{
+		cntx.F_register->at(s) = a;
+	}
+	static vtype get(ProgramData& cntx, int  a)
+	{
+		return cntx.F_register->at(a);
+	}
+};
+struct INT
+{
+	typedef int vtype;
+	static void push(ProgramData& cntx, vtype a, int s)
+	{
+		cntx.I_register->at(s) = a;
+	}
+	static vtype get(ProgramData& cntx, int a)
+	{
+		return cntx.I_register->at(a);
+	}
+};
+
+template<typename OP> class instr_ADD2 : public instr_Binary
+{
+public:
+	instr_ADD2() : instr_Binary() {};
+	instr_ADD2(int cond, number_type t, int s, int a1, int a2) : instr_Binary(cond, t, s, a1, a2) {};
+
+protected:
+	void p_execute(ProgramData& prg_data)
+	{
+		typename OP::vtype arg1 = OP::get(prg_data, arg1_);
+		typename OP::vtype arg2 = OP::get(prg_data, arg2_);
+		OP::push(prg_data, arg1 + arg2, store_);	
+	}
+};
+
+template<typename OP> class instr_SUB2 : public instr_Binary
+{
+public:
+	instr_SUB2() : instr_Binary() {};
+	instr_SUB2(int cond, number_type t, int s, int a1, int a2) : instr_Binary(cond, t, s, a1, a2) {};
+
+protected:
+	void p_execute(ProgramData& prg_data)
+	{
+		typename OP::vtype arg1 = OP::get(prg_data, arg1_);
+		typename OP::vtype arg2 = OP::get(prg_data, arg2_);
+		OP::push(prg_data, arg1 - arg2, store_);
+	}
+};
+
+template<typename OP> class instr_MUL2 : public instr_Binary
+{
+public:
+	instr_MUL2() : instr_Binary() {};
+	instr_MUL2(int cond, number_type t, int s, int a1, int a2) : instr_Binary(cond, t, s, a1, a2) {};
+
+protected:
+	void p_execute(ProgramData& prg_data)
+	{
+		typename OP::vtype arg1 = OP::get(prg_data, arg1_);
+		typename OP::vtype arg2 = OP::get(prg_data, arg2_);
+		OP::push(prg_data, arg1 * arg2, store_);
+	}
+};
+
+template<typename OP> class instr_DIV2 : public instr_Binary
+{
+	public:
+		instr_DIV2() : instr_Binary() {};
+		instr_DIV2(int cond, number_type t, int s, int a1, int a2) : instr_Binary(cond, t, s, a1, a2) {};
+
+	protected:
+		void p_execute(ProgramData& prg_data)
+		{
+			typename OP::vtype arg1 = OP::get(prg_data, arg1_);
+			typename OP::vtype arg2 = OP::get(prg_data, arg2_);
+			if (arg2 == 0)
+			{
+				std::cout << "DIV operation failed." << std::endl;
+				throw(assembler_exception("DIV's arguments were " + std::to_string(arg1) + " / " + std::to_string(arg2)));
+			}
+			else
+				OP::push(prg_data, arg1 / arg2, store_);
+		}
+};
+
+template<typename OP> class instr_LDST2 : public instruction
+{
+public:
+	instr_LDST2() : instruction(), num_type(integer), store_(-1), arg_(-1) {};
+	instr_LDST2(int cond, ldst_type ls, number_type t, int s, int a) :
+		instruction(cond), load_or_store(ls), num_type(t), store_(s), arg_(a) {};
+protected:
+	number_type num_type;
+	ldst_type load_or_store;
+	int store_;
+	int arg_;
+	void p_execute(ProgramData& prg_data)
+	{
+		if (load_or_store == load)
+		{
+			// load LD R15 = [R20]
+			int from = (int)OP::get(prg_data, arg_); // R20 = 110
+			if (from > 255)
+			{
+				std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
+				throw(assembler_exception("Index was " + std::to_string(from)));
+				return;
+			}
+			// R15 = [110] 
+			OP::push(prg_data, OP::get(prg_data, from), store_);
+
+		}
+		else
+		{
+			// store ST [R33] = R55
+			int to = (int)OP::get(prg_data, store_); // R20 = 110
+			if (to > 255)
+			{
+				std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
+				throw(assembler_exception("Index was " + std::to_string(to)));
+				return;
+			}
+			// R15 = [110] 
+			OP::push(prg_data, OP::get(prg_data, arg_), to);
+		}
+	}
+};
+
+/*
+class instr_ADD : public instr_Binary
+{
+public:
+instr_ADD() : instr_Binary() {};
+instr_ADD(int cond, number_type t, int s, int a1, int a2) : instr_Binary(cond, t, s, a1, a2) {};
+int do_operation(int a, int b, bool& s);
+float do_operation(float a, float b, bool& s);
+};
+
+class instr_SUB : public instr_Binary
+{
+public:
+instr_SUB() : instr_Binary() {};
+instr_SUB(int cond, number_type t, int s, int a1, int a2) : instr_Binary(cond, t, s, a1, a2) {};
+virtual int do_operation(int a, int b, bool& s);
+virtual float do_operation(float a, float b, bool& s);
+};
+
+class instr_MUL : public instr_Binary
+{
+public:
+instr_MUL() : instr_Binary() {};
+instr_MUL(int cond, number_type t, int s, int a1, int a2) : instr_Binary(cond, t, s, a1, a2) {};
+virtual int do_operation(int a, int b, bool& s);
+virtual float do_operation(float a, float b, bool& s);
+};
+
+class instr_DIV : public instr_Binary
+{
+public:
+instr_DIV() : instr_Binary() {};
+instr_DIV(int cond, number_type t, int s, int a1, int a2) : instr_Binary(cond, t, s, a1, a2) {};
+virtual int do_operation(int a, int b, bool& s);
+virtual float do_operation(float a, float b, bool& s);
+};*/
+
+/*  class instr_LDST : public instruction
+{
+protected:
+number_type num_type;
+ldst_type load_or_store;
+int store_;
+int arg_;
+public:
+instr_LDST() : instruction(), num_type(integer), store_(-1), arg_(-1) {};
+instr_LDST(int cond, ldst_type ls, number_type t, int s, int a) :
+instruction(cond), load_or_store(ls), num_type(t), store_(s), arg_(a) {};
+void execute(ProgramData& prg_data);
+private:
+void instr_LDST::store(std::vector<int>* vec);
+void instr_LDST::store(std::vector<float>*  vec);
+};*/
 #endif

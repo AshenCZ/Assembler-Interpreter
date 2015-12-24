@@ -21,7 +21,7 @@ add r13 = r13,r1 ; i++
 cmplt p2,p3 = r13,r12 ;for cycle up^
 jmp.p2 for
 
-in r100
+in r100 ; what number to add
 ; PREDELAVA
 ; promenne
 ldc r41 = 0 ; zacatek

@@ -236,13 +236,33 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 					//cout << "Returning: " << "Codnition: " << cond << " store: " << s << " arg1: " << a1 << " arg2: " << a2 << " type: " << nt << endl;
 
 					if (command_conditionless == "ADD")
-						return make_unique<instr_ADD>(cond, nt, s, a1, a2);
+					{
+						if (nt == floating)
+							return make_unique<instr_ADD2<FL>>(cond, nt, s, a1, a2);
+						else
+							return make_unique<instr_ADD2<INT>>(cond, nt, s, a1, a2);
+					}
 					else if (command_conditionless == "SUB")
-						return make_unique<instr_SUB>(cond, nt, s, a1, a2);
+					{
+						if (nt == floating)
+							return make_unique<instr_SUB2<FL>>(cond, nt, s, a1, a2);
+						else
+							return make_unique<instr_SUB2<INT>>(cond, nt, s, a1, a2);
+					}
 					else if (command_conditionless == "MUL")
-						return make_unique<instr_MUL>(cond, nt, s, a1, a2);
+					{
+						if (nt == floating)
+							return make_unique<instr_MUL2<FL>>(cond, nt, s, a1, a2);
+						else
+							return make_unique<instr_MUL2<INT>>(cond, nt, s, a1, a2);
+					}
 					else if (command_conditionless == "DIV")
-						return make_unique<instr_DIV>(cond, nt, s, a1, a2);
+					{
+						if (nt == floating)
+							return make_unique<instr_DIV2<FL>>(cond, nt, s, a1, a2);
+						else
+							return make_unique<instr_DIV2<INT>>(cond, nt, s, a1, a2);
+					}
 				}
 				else
 				{
@@ -320,14 +340,14 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 					nt = floating;
 				else
 					line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of unkown type '" + check[0] + "' (not F or R).");
+				
+				int s = stoi(arg1.substr(1, arg1.length() - 1));
+				float  a1 = stof(arg2.substr(1, arg2.length() - 1));
 
-				int s, a1;
-				s = stoi(arg1.substr(1, arg1.length() - 1));
-				a1 = stoi(arg2.substr(1, arg2.length() - 1));
 				if (command_conditionless == "LDC")
 				{
 					s = stoi(arg1.substr(1, arg1.length() - 1));
-					a1 = stoi(words[index + 2]);
+					a1 = stof(words[index + 2]);
 				}
 
 				if (s < 0 || s > 255 || a1 < 0 || a1 > 255)
@@ -340,11 +360,20 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 				//cout << "Returning: " << "Codnition: " << cond << " store: " << s << " arg1: " << a1 << " type: " << nt << endl;
 
 				if (command_conditionless == "LD")
-					return make_unique<instr_LDST>(cond, load, nt, s, a1);
+					if(nt == floating)
+						return make_unique<instr_LDST2<FL>>(cond, load, nt, s, (int)a1);
+					else
+						return make_unique<instr_LDST2<INT>>(cond, load, nt, s, (int)a1);
 				else if (command_conditionless == "ST")
-					return make_unique<instr_LDST>(cond, store, nt, s, a1);
+					if (nt == floating)
+						return make_unique<instr_LDST2<FL>>(cond, store, nt, s, (int)a1);
+					else
+						return make_unique<instr_LDST2<INT>>(cond, store, nt, s, (int)a1);
 				else if (command_conditionless == "LDC")
-					return make_unique<instr_LDC>(cond, nt, s, a1);
+					if (nt == floating)
+						return make_unique<instr_LDC>(cond, nt, s, a1);
+					else
+						return make_unique<instr_LDC>(cond, nt, s, (int)a1);	
 			}
 			else
 			{
@@ -470,7 +499,9 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 	}
 	
 	// if it is not a valid instruction
-	line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Invalid command found. Line skipped.");
+	if (fail == false)
+		line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Invalid command found.");
+
 	return make_unique<instruction>(-1);
 }
 
