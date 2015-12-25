@@ -86,90 +86,51 @@ class instr_Binary : public instruction
 		virtual ~instr_Binary() = default;
 		instr_Binary() : instruction(), num_type(integer), store_(-1), arg1_(-1), arg2_(-1) {};
 		instr_Binary(int cond, number_type t, int s, int a1, int a2) : instruction(cond), num_type(t), store_(s), arg1_(a1), arg2_(a2) {};
-	/*
-		//legacy
-		virtual int do_operation(int a, int b, bool& s) { return 0; }
-		virtual float do_operation(float a, float b, bool& s) { return 0;  }
-		virtual void execute(ProgramData& prg_data);
-	*/
 };
 
-class instr_JMP : public instruction
-{
-	private:
-		std::string where_to_jump_;
-	public:
-		instr_JMP() : instruction() {};
-		instr_JMP(std::string w, int cond) : instruction(cond), where_to_jump_(w) {};
-		virtual ~instr_JMP() = default;
-		virtual void execute(ProgramData& prg_data);
-};
-
-class instr_LDC : public instruction
-{
-	private:
-		int store_;
-		number_type num_type;
-		int i_constant;
-		float f_constant;
-	public:
-		instr_LDC() : instruction(), store_(0), i_constant(0), num_type(integer) {};
-		instr_LDC(int cond, number_type nt, int s, int c) : instruction(cond), f_constant(0), store_(s), i_constant(c), num_type(nt) {};
-		instr_LDC(int cond, number_type nt, int s, float c) : instruction(cond), f_constant(c), store_(s), i_constant(0), num_type(nt) {};
-		void execute(ProgramData& prg_data);
-};
-
-class instr_IO : public instruction
-{
-	private:
-		void instr_IO::do_IO(std::vector<float> * vec);
-		void instr_IO::do_IO(std::vector<int> * vec);
-
-	protected:
-		io_type op_type;
-		number_type num_type;
-		int pos_;
-	public:
-		instr_IO() : instruction(), pos_(0), op_type(in), num_type(integer) {};
-		instr_IO(int cond, number_type nt, io_type op, int p) : instruction(cond), op_type(op), pos_(p), num_type(nt) {};
-		void execute(ProgramData& prg_data);
-};
-
+// not templated because of cross-reasons
 class instr_CVRT : public instruction
 {
 private:
 	int pos_;
 	int store_;
 	number_type num_type_;
+	void p_execute(ProgramData& prg_data)
+	{
+		if (num_type_ == integer)
+		{
+			prg_data.F_register->at(store_) = (float)(prg_data.I_register->at(pos_));
+		}
+		else if (num_type_ == floating)
+		{
+			prg_data.I_register->at(store_) = (int)(prg_data.F_register->at(pos_));
+		}
+	}
 public:
 	instr_CVRT() : instruction(), num_type_(integer), pos_(0), store_(0) {};
-	instr_CVRT(int cond, number_type nt, int p, int s) : instruction(cond),num_type_(nt), pos_(p), store_(s) {};
-	void execute(ProgramData& prg_data);
+	instr_CVRT(int cond, number_type nt, int p, int s) : instruction(cond),num_type_(nt), pos_(p), store_(s) {}	
 };
 
-class instr_CMP : public instruction
+class instr_JMP : public instruction
 {
-	protected:
-		int pred1_;
-		int pred2_;
-		int arg1_;
-		int arg2_;
-		number_type num_type_;
-		cmp_type relation_type;
+private:
+	std::string where_to_jump_;
+	void p_execute(ProgramData& prg_data)
+	{
+		std::cout << "Jumping to " << where_to_jump_ << std::endl;
+		// find where to jump and if the condition applies, jump
+		auto ret = prg_data.navesti->find(where_to_jump_);
 
-		bool do_relation(float a, float b);
-	public:
-		void execute(ProgramData& prg_data);
-		instr_CMP() : instruction() {};
-		instr_CMP(int cond, int p1, int p2, int a1, int a2, number_type nt, cmp_type rel) : instruction(cond)
+		if (ret != prg_data.navesti->end())
 		{
-			pred1_ = p1;
-			pred2_ = p2;
-			arg1_ = a1;
-			arg2_ = a2;
-			num_type_ = nt;
-			relation_type = rel;
+			if ((*prg_data.P_register)[condition_])
+				prg_data.prg_counter = ret->second;
 		}
+	}
+public:
+	instr_JMP() : instruction() {};
+	instr_JMP(std::string w, int cond) : instruction(cond), where_to_jump_(w) {};
+	virtual ~instr_JMP() = default;
 };
 
 // Template policies
@@ -184,6 +145,10 @@ struct FL
 	{
 		return cntx.F_register->at(a);
 	}
+	static std::string get_name()
+	{
+		return "F";
+	}
 };
 struct INT
 {
@@ -196,6 +161,25 @@ struct INT
 	{
 		return cntx.I_register->at(a);
 	}
+	static std::string get_name()
+	{
+		return "R";
+	}
+};
+
+template <typename OP> class instr_LDC : public instruction
+{
+private:
+	int store_;
+	typename OP::vtype constant;
+	void p_execute(ProgramData& prg_data)
+	{
+		OP::push(prg_data, constant, store_);
+	}
+
+public:
+	instr_LDC() : instruction(), store_(0), i_constant(0) {};
+	instr_LDC(int cond, int s, typename OP::vtype c) : instruction(cond), store_(s), constant(c) {};
 };
 
 template<typename OP> class instr_ADD2 : public instr_Binary
@@ -307,57 +291,111 @@ protected:
 	}
 };
 
-/*
-class instr_ADD : public instr_Binary
+template<typename OP> class instr_MOV : public instruction
 {
 public:
-instr_ADD() : instr_Binary() {};
-instr_ADD(int cond, number_type t, int s, int a1, int a2) : instr_Binary(cond, t, s, a1, a2) {};
-int do_operation(int a, int b, bool& s);
-float do_operation(float a, float b, bool& s);
+	instr_MOV() : instruction(), store_(-1), arg_(-1) {};
+	instr_MOV(int cond, int s, int a) : instruction(cond), store_(s), arg_(a) {};
+protected:
+	int store_;
+	int arg_;
+	void p_execute(ProgramData& prg_data)
+	{
+		OP::vtype value = OP::get(prg_data,arg_);
+		OP::push(prg_data, value, store_);
+	}
 };
 
-class instr_SUB : public instr_Binary
-{
-public:
-instr_SUB() : instr_Binary() {};
-instr_SUB(int cond, number_type t, int s, int a1, int a2) : instr_Binary(cond, t, s, a1, a2) {};
-virtual int do_operation(int a, int b, bool& s);
-virtual float do_operation(float a, float b, bool& s);
-};
-
-class instr_MUL : public instr_Binary
-{
-public:
-instr_MUL() : instr_Binary() {};
-instr_MUL(int cond, number_type t, int s, int a1, int a2) : instr_Binary(cond, t, s, a1, a2) {};
-virtual int do_operation(int a, int b, bool& s);
-virtual float do_operation(float a, float b, bool& s);
-};
-
-class instr_DIV : public instr_Binary
-{
-public:
-instr_DIV() : instr_Binary() {};
-instr_DIV(int cond, number_type t, int s, int a1, int a2) : instr_Binary(cond, t, s, a1, a2) {};
-virtual int do_operation(int a, int b, bool& s);
-virtual float do_operation(float a, float b, bool& s);
-};*/
-
-/*  class instr_LDST : public instruction
+template<typename OP> class instr_CMP : public instruction
 {
 protected:
-number_type num_type;
-ldst_type load_or_store;
-int store_;
-int arg_;
+	int pred1_;
+	int pred2_;
+	int arg1_;
+	int arg2_;
+	cmp_type relation_type;
+
+	bool do_relation(typename OP::vtype a, typename  OP::vtype  b)
+	{
+		switch (relation_type)
+		{
+		case eq:
+			return a == b;
+			break;
+		case ne:
+			return a != b;
+			break;
+		case gt:
+			return a > b;
+			break;
+		case lt:
+			return a < b;
+			break;
+		case ge:
+			return a >= b;
+			break;
+		case le:
+			return a <= b;
+			break;
+		default:
+			return false;
+			break;
+		}
+	}
+
+	void p_execute(ProgramData& prg_data)
+	{
+		bool pred1_value;
+		typename OP::vtype a, b;
+		a = OP::get(prg_data, arg1_);
+		b = OP::get(prg_data, arg2_);
+
+		pred1_value = do_relation(a, b);
+
+		if (pred1_ != 1 && pred1_ != 0)
+			prg_data.P_register->at(pred1_) = pred1_value;
+		if (pred2_ != 1 && pred2_ != 0)
+			prg_data.P_register->at(pred2_) = !pred1_value;
+	}
+
 public:
-instr_LDST() : instruction(), num_type(integer), store_(-1), arg_(-1) {};
-instr_LDST(int cond, ldst_type ls, number_type t, int s, int a) :
-instruction(cond), load_or_store(ls), num_type(t), store_(s), arg_(a) {};
-void execute(ProgramData& prg_data);
-private:
-void instr_LDST::store(std::vector<int>* vec);
-void instr_LDST::store(std::vector<float>*  vec);
-};*/
+
+	instr_CMP() : instruction() {};
+	instr_CMP(int cond, int p1, int p2, int a1, int a2, cmp_type rel) : instruction(cond)
+	{
+		pred1_ = p1;
+		pred2_ = p2;
+		arg1_ = a1;
+		arg2_ = a2;
+		relation_type = rel;
+	}
+};
+
+template <typename OP> class instr_IO : public instruction
+{
+	private:
+		void p_execute(ProgramData& prg_data)
+		{
+			if (op_type == in)
+			{
+				std::cout << "Insert value at " << OP::get_name() << "[" << pos_ << "]: ";
+				typename OP::vtype input;
+				std::cin >> input;
+
+				OP::push(prg_data, input, pos_);
+			}
+			else if (op_type == out)
+			{
+				std::cout << "Value at " << OP::get_name() << "[" << pos_ << "] = " << OP::get(prg_data, pos_) << std::endl;
+			}
+		}
+
+	protected:
+		io_type op_type;
+		int pos_;
+	public:
+		instr_IO() : instruction(), pos_(0), op_type(in) {};
+		instr_IO(int cond, io_type op, int p) : instruction(cond), op_type(op), pos_(p) {};
+};
+
 #endif

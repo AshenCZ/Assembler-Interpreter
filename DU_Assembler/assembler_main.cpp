@@ -299,10 +299,16 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 
 			//cout << "Returning: " << "Codnition: " << cond << " arg1: " << iarg << " type: " << nt << endl;
 
+			io_type cmd_type;
 			if (command_conditionless == "IN")
-				return make_unique<instr_IO>(cond, nt, in, iarg);
+				cmd_type = in;
 			else if (command_conditionless == "OUT")
-				return make_unique<instr_IO>(cond, nt, out, iarg);
+				cmd_type = out;
+
+			if (nt == floating)
+				return make_unique<instr_IO<FL>>(cond, cmd_type, iarg);
+			else
+				return make_unique<instr_IO<INT>>(cond, cmd_type, iarg);
 		}
 		else if (command_conditionless == "LDC" || command_conditionless == "ST" ||
 			command_conditionless == "LD")
@@ -340,7 +346,7 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 					nt = floating;
 				else
 					line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of unkown type '" + check[0] + "' (not F or R).");
-				
+
 				int s = stoi(arg1.substr(1, arg1.length() - 1));
 				float  a1 = stof(arg2.substr(1, arg2.length() - 1));
 
@@ -360,7 +366,7 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 				//cout << "Returning: " << "Codnition: " << cond << " store: " << s << " arg1: " << a1 << " type: " << nt << endl;
 
 				if (command_conditionless == "LD")
-					if(nt == floating)
+					if (nt == floating)
 						return make_unique<instr_LDST2<FL>>(cond, load, nt, s, (int)a1);
 					else
 						return make_unique<instr_LDST2<INT>>(cond, load, nt, s, (int)a1);
@@ -370,10 +376,17 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 					else
 						return make_unique<instr_LDST2<INT>>(cond, store, nt, s, (int)a1);
 				else if (command_conditionless == "LDC")
+				{
 					if (nt == floating)
-						return make_unique<instr_LDC>(cond, nt, s, a1);
+						return make_unique<instr_LDC<FL>>(cond, s, a1);
 					else
-						return make_unique<instr_LDC>(cond, nt, s, (int)a1);	
+					{
+						int b = (int)a1;
+						return make_unique<instr_LDC<INT>>(cond, s, b);
+					}
+				}
+
+
 			}
 			else
 			{
@@ -415,6 +428,44 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 			else
 			{
 				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of CVRT must be of a different type!");
+			}
+		}
+		else if (command_conditionless == "MOV")
+		{
+			if (number_arguments != 2)
+			{
+				wrong_arguments("MOV", number_arguments, line_number, fail);
+			}
+			string arg1 = words[index + 1];
+			string arg2 = words[index + 2];
+
+			if (arg1[0] == arg2[0])
+			{
+				if (arg2[0] == 'F')
+					nt = floating;
+				else if (arg2[0] == 'R')
+					nt = integer;
+				else
+					line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of MOV is of unkown type!");
+
+				int a1 = stoi(arg1.substr(1, arg1.length() - 1));
+				int a2 = stoi(arg2.substr(1, arg2.length() - 1));
+
+				if (a2 < 0 || a2 > 255 || a1 < 0 || a1 > 255)
+				{
+					line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Argument out of range.");
+				}
+
+				int cond = return_condition(condition, line_number, fail);
+
+				if (nt == floating)
+					return make_unique<instr_MOV<FL>>(cond, a1, a2);
+				else
+					return make_unique<instr_MOV<INT>>(cond, a1, a2);
+			}
+			else
+			{
+				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of MOV must be of the same type!");
 			}
 		}
 		else if (command_conditionless == "JMP")
@@ -472,23 +523,30 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Argument out of range.");
 			}
 
-			string tp = command_conditionless.substr(3, 2);
+			string cmp_relation = command_conditionless.substr(3, 2);
 
 			//	cout << "Returning: " << "Codnition: " << cond << " predicates: " << p1 << p2 << " arg1: " << a1 << " arg2: " << a2 << " type: " << nt << tp << endl;
 
-			if (tp == "EQ")
+			cmp_type e_relation;
 
-				return make_unique<instr_CMP>(cond, p1, p2, a1, a2, nt, eq);
-			if (tp == "NE")
-				return make_unique<instr_CMP>(cond, p1, p2, a1, a2, nt, ne);
-			if (tp == "GE")
-				return make_unique<instr_CMP>(cond, p1, p2, a1, a2, nt, ge);
-			if (tp == "GT")
-				return make_unique<instr_CMP>(cond, p1, p2, a1, a2, nt, gt);
-			if (tp == "LE")
-				return make_unique<instr_CMP>(cond, p1, p2, a1, a2, nt, le);
-			if (tp == "LT")
-				return make_unique<instr_CMP>(cond, p1, p2, a1, a2, nt, lt);
+			if (cmp_relation == "EQ")
+				e_relation = eq;
+			if (cmp_relation == "NE")
+				e_relation = ne;
+			if (cmp_relation == "GE")
+				e_relation = ge;
+			if (cmp_relation == "GT")
+				e_relation = gt;
+			if (cmp_relation == "LE")
+				e_relation = le;
+			if (cmp_relation == "LT")
+				e_relation = lt;
+
+			if (nt == floating)
+				return make_unique<instr_CMP<FL>>(cond, p1, p2, a1, a2, e_relation);
+			if (nt == integer)
+				return make_unique<instr_CMP<INT>>(cond, p1, p2, a1, a2, e_relation);
+
 		}
 	}
 	catch (invalid_argument e)
@@ -537,35 +595,26 @@ int main(int argc, char**argv)
 	// We allocate the opened file to an object, so we close it automatically
 	file_resource inFile((string)((argv[1])));
 
-	// Read input into instructions, already checking parameters and validity of parameters.
 	std::vector< unique_ptr< instruction > > asmb_instructions;
 	std::unordered_map<std::string, int> navesti_given;
 	std::vector<string> navesti_needed;
+	
+	// Read input into instructions, already checking parameters and validity of parameters.
 	bool fail_state = read_input(inFile, asmb_instructions, navesti_given, navesti_needed);
-	if (fail_state)
-	{
-		return 0;
-	}
-
+	if (fail_state) return 0;
 	cout << endl << ">> Parsing is complete." << endl << endl;
 
 	// We do a check of navesti needed and navesti provided
-	bool navesti_fail = false;
 	for (auto navesti : navesti_needed)
 	{
 		auto finding = navesti_given.find(navesti);
 		if (finding == navesti_given.end())
 		{
-			cout << " Navesti " << navesti << " not found. Please add this navesti if you want to jump to it. Exiting." << endl;
-			navesti_fail = true;
+			cout << "Navesti " << navesti << " not found. Please add this navesti if you want to jump to it. Exiting." << endl;
+			return 0;
 			break;
 		}
 	}
-	if (navesti_fail)
-	{
-		return 0;
-	}
-
 	cout  << ">> Validating is complete. Running simulation... " << endl << endl;
 
 	// run and simulate processor
@@ -587,133 +636,8 @@ int main(int argc, char**argv)
 		}
 		if(tmp == program_data.prg_counter)
 			program_data.prg_counter++;
-
-		///HACK , ///TODO for P0 a P1 being constant
-		if (program_data.P_register->at(0) != false)
-			program_data.P_register->at(0) = false;
-		if (program_data.P_register->at(1) != true)
-			program_data.P_register->at(1) = true;
 	}
 	
 	cout << "\n>> The end.\n\n";
 	return 0;
 }
-
-/*
-
-// TEST AREA
-/*
-vector< unique_ptr<instruction> > vec;
-
-vec.push_back(move(make_unique<instr_DIV>(1, floating, 10, 5, 6)));
-vec.push_back(move(make_unique<instr_SUB>(1, floating, 10, 5, 6)));
-vec.push_back(move(make_unique<instr_MUL>(1, floating, 10, 5, 6)));
-vec.push_back(move(make_unique<instr_ADD>(1, integer, 10, 5, 6)));
-vec.push_back(move(make_unique<instr_DIV>(1, integer, 10, 5, 6)));
-vec.push_back(move(make_unique<instr_MUL>(1, integer, 10, 5, 6)));
-vec.push_back(move(make_unique<instr_JMP>("TU",1)));
-vec.push_back(move(make_unique<instr_JMP>("TAM", 1)));
-vec.push_back( move( make_unique<instr_LDST>(1, load, integer, 100, 6) ) );
-vec.push_back(move(make_unique<instr_LDST>(1, store, integer, 120, 121)));
-vec.push_back(move(make_unique<instr_LDST>(1, load, floating, 100, 6)));
-vec.push_back(move(make_unique<instr_LDST>(1, store, floating, 120, 121)));
-vec.push_back(move(make_unique<instr_LDC>(1,integer,254,987)));
-vec.push_back(move(make_unique<instr_LDC>(1, floating, 254, (float)987.5)));
-vec.push_back(move(make_unique<instr_IO>(1, integer, out, 20)));
-vec.push_back(move(make_unique<instr_IO>(1, integer, in, 20)));
-vec.push_back(move(make_unique<instr_IO>(1, integer, out, 20)));
-
-vec.push_back(move(make_unique<instr_IO>(1, integer, in, 110)));
-vec.push_back(move(make_unique<instr_IO>(1, floating, in, 210)));
-
-vec.push_back(move(make_unique<instr_CVRT>(1, floating, 210, 111)));
-vec.push_back(move(make_unique<instr_CVRT>(1, integer, 110, 211)));
-
-vec.push_back(move(make_unique<instr_IO>(1, integer, out, 111)));
-vec.push_back(move(make_unique<instr_IO>(1, floating, out, 211)));
-
-vec.push_back(move(make_unique<instr_IO>(1, floating, in, 220)));
-vec.push_back(move(make_unique<instr_IO>(1, floating, in, 221)));
-vec.push_back(move(make_unique<instr_CMP>(1, 100,101, 220,221,floating, eq)));
-vec.push_back(move(make_unique<instr_CMP>(1, 102, 103, 220, 221, floating, ne)));
-vec.push_back(move(make_unique<instr_CMP>(1, 104, 105, 220, 221, floating, ge)));
-vec.push_back(move(make_unique<instr_CMP>(1, 106, 107, 220, 221, floating, gt)));
-vec.push_back(move(make_unique<instr_CMP>(1, 108, 109, 220, 221, floating, le)));
-vec.push_back(move(make_unique<instr_CMP>(1, 110, 111, 220, 221, floating, lt)));
-
-ProgramData prg;
-prg.I_register = std::make_unique<std::vector<int> >(256);
-prg.F_register = std::make_unique<std::vector<float> >(256);
-
-prg.I_register->at(5) = 10;
-prg.I_register->at(6) = 20;
-prg.I_register->at(20) = 1000;
-prg.I_register->at(120) = 122;
-prg.I_register->at(121) = 666;
-
-
-prg.F_register->at(5) = 10;
-prg.F_register->at(6) = 20;
-prg.F_register->at(20) = 1000;
-prg.F_register->at(120) = 122;
-prg.F_register->at(121) = 666;
-
-
-prg.P_register = std::make_unique<std::vector<bool> >(256);
-prg.P_register->at(1) = true;
-
-prg.navesti = std::make_unique< std::unordered_map<std::string, int> >();
-prg.prg_counter = 0;
-
-(*prg.navesti)["TU"] = 2;
-(*prg.navesti)["TAM"] = 5;
-
-int count = 0;
-while (prg.prg_counter < vec.size())
-{
-vec[prg.prg_counter]->execute(prg);
-prg.prg_counter++;
-count++;
-if (count > 20 && prg.P_register->at(1) == true)
-{
-cout << "terminate\n";
-prg.P_register->at(1) = false;
-}
-}
-
-cout << prg.I_register->at(100);
-cout << prg.I_register->at(122);
-
-cout << prg.F_register->at(100);
-cout << prg.F_register->at(122);
-
-cout << endl << prg.I_register->at(254);
-cout << endl << prg.F_register->at(254);
-
-cout << endl << prg.F_register->at(211) << endl;
-cout << endl << endl << "EQ " << (bool)prg.P_register->at(100) << " " << (bool)prg.P_register->at(101) << endl;
-cout << "NE " << (bool)prg.P_register->at(102) << " " << (bool)prg.P_register->at(103) << endl;
-cout << "GE " << (bool)prg.P_register->at(104) << " " << (bool)prg.P_register->at(105) << endl;
-cout << "GT " << (bool)prg.P_register->at(106) << " " << (bool)prg.P_register->at(107) << endl;
-cout << "LE " << (bool)prg.P_register->at(108) << " " << (bool)prg.P_register->at(109) << endl;
-cout << "LT " << (bool)prg.P_register->at(110) << " " << (bool)prg.P_register->at(111) << endl;
-
-*/
-
-/*
-
-rozdil mezi:
-
-file_resource inFile2(filename);
-cout << inFile2.getState();
-
-file_resource inFile3( (string)((argv[1])));
-cout << inFile3.getState();
-
-file_resource inFile3( string((argv[1])) );
-cout << inFile3.getState();
-
-???????
-
-Prvni faka, druhe take, treti vubec
-*/
