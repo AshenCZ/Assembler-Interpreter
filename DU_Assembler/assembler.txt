@@ -1,6 +1,32 @@
-ldc r1 = 10
-ldc r2 = 1
-
-cmpeq p1,p0 = r1,r2
-out.p1 r1
-jmp.p1 tu
+	; Eratostenovo sito
+		LDC	r1=1
+		LDC	r0=2
+		LDC	r3=256
+		LDC	f0=0.0
+	; prepare/clear array
+	L1:	CMPLT	p2,p0=r0,r3
+		ST.p2	[r0]=f0
+		ADD.p2	r0=r0,r1
+		JMP.p2	L1
+	; sito
+		LDC	r0=2
+		LDC	f1=1.0
+		LD	f0=[r2]
+		CMPEQ	p2,p0=f0,f1
+		JMP.p2	L2
+		MOV	r2=r0
+	L3:	ADD	r2,r0
+		CMPLT	p2,p0=r2,r3
+		ST.p2	[r2]=f1
+		JMP.p2	L3
+	L2:	ADD	r0=r0,r1
+		CMPLT	p2,p0=r0,r3
+		JMP.p2	L1
+	; output
+		LDC	r0=2
+	L4:	LD	f0=[r0]
+		CMPEQ	p0,p2=f0,f1
+		OUT.p2	r0
+		ADD	r0=r0,r1
+		CMPLT	p2,p0=r0,r3
+		JMP.p2	L4

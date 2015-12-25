@@ -65,7 +65,7 @@ class instruction
 		instruction(int c) : condition_(c) {};
 		virtual ~instruction() = default;
 
-		virtual void execute(ProgramData& prg_data)
+		void execute(ProgramData& prg_data)
 		{
 			if ((*prg_data.P_register)[condition_])
 				p_execute(prg_data);
@@ -113,7 +113,7 @@ public:
 
 class instr_JMP : public instruction
 {
-private:
+protected:
 	std::string where_to_jump_;
 	void p_execute(ProgramData& prg_data)
 	{
@@ -127,6 +127,7 @@ private:
 				prg_data.prg_counter = ret->second;
 		}
 	}
+
 public:
 	instr_JMP() : instruction() {};
 	instr_JMP(std::string w, int cond) : instruction(cond), where_to_jump_(w) {};
@@ -263,22 +264,22 @@ protected:
 	{
 		if (load_or_store == load)
 		{
-			// load LD R15 = [R20]
-			int from = (int)OP::get(prg_data, arg_); // R20 = 110
+			// load LD F15 = [R20]
+			int from = prg_data.I_register->at(arg_); // R20 = 110
 			if (from > 255)
 			{
 				std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
 				throw(assembler_exception("Index was " + std::to_string(from)));
 				return;
 			}
-			// R15 = [110] 
+			// MOV F15 = [110] 
 			OP::push(prg_data, OP::get(prg_data, from), store_);
 
 		}
 		else
 		{
 			// store ST [R33] = R55
-			int to = (int)OP::get(prg_data, store_); // R20 = 110
+			int to = prg_data.I_register->at(store_); // R20 = 110
 			if (to > 255)
 			{
 				std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;

@@ -6,6 +6,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include <regex>
 
 #include "instruction.h"
 
@@ -563,6 +564,247 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 	return make_unique<instruction>(-1);
 }
 
+int condition(string cond)
+{
+	int ret = 1;
+	if (cond != "")
+		ret = stoi(cond);
+	return ret;
+}
+
+unique_ptr< instruction> regextests(string line, std::unordered_map<std::string, int>& navesti_given, std::vector<string>& navesti_needed, int instr_number, int line_number, bool& fail)
+{
+	// convert all to uppercase
+	for (size_t i = 0; i < line.length(); i++)
+	{
+		line[i] = toupper(line[i]);
+	}
+	cout << ".";
+	
+	string regexes[27];
+	regexes[0] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(ADD)(\\.P([0-9]+))?[[:space:]]*R([0-9]+)[[:space:]]*=[[:space:]]*R([0-9]+)[[:space:]]*,[[:space:]]*R([0-9]+)[[:space:]]*(;.*)?";
+	regexes[13] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(ADD)(\\.P([0-9]+))?[[:space:]]*F([0-9]+)[[:space:]]*=[[:space:]]*F([0-9]+)[[:space:]]*,[[:space:]]*F([0-9]+)[[:space:]]*(;.*)?";
+
+	regexes[10] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(SUB)(\\.P([0-9]+))?[[:space:]]*R([0-9]+)[[:space:]]*=[[:space:]]*R([0-9]+)[[:space:]]*,[[:space:]]*R([0-9]+)[[:space:]]*(;.*)?";
+	regexes[23] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(SUB)(\\.P([0-9]+))?[[:space:]]*F([0-9]+)[[:space:]]*=[[:space:]]*F([0-9]+)[[:space:]]*,[[:space:]]*F([0-9]+)[[:space:]]*(;.*)?";
+
+	regexes[11] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(MUL)(\\.P([0-9]+))?[[:space:]]*R([0-9]+)[[:space:]]*=[[:space:]]*R([0-9]+)[[:space:]]*,[[:space:]]*R([0-9]+)[[:space:]]*(;.*)?";
+	regexes[24] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(MUL)(\\.P([0-9]+))?[[:space:]]*F([0-9]+)[[:space:]]*=[[:space:]]*F([0-9]+)[[:space:]]*,[[:space:]]*F([0-9]+)[[:space:]]*(;.*)?";
+
+	regexes[12] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(DIV)(\\.P([0-9]+))?[[:space:]]*R([0-9]+)[[:space:]]*=[[:space:]]*R([0-9]+)[[:space:]]*,[[:space:]]*R([0-9]+)[[:space:]]*(;.*)?";
+	regexes[25] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(DIV)(\\.P([0-9]+))?[[:space:]]*F([0-9]+)[[:space:]]*=[[:space:]]*F([0-9]+)[[:space:]]*,[[:space:]]*F([0-9]+)[[:space:]]*(;.*)?";
+
+	regexes[1] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(JMP)(\\.P([0-9]+))?[[:space:]]*([a-z0-9A-Z]+)[[:space:]]*(;.*)?";
+
+	regexes[2] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(CMP)([A-Z]{2})(\\.P([0-9]+))?[[:space:]]*P([0-9]+)[[:space:]]*,[[:space:]]*P([0-9]+)[[:space:]]*=[[:space:]]*R([0-9]+)[[:space:]]*,[[:space:]]*R([0-9]*)[[:space:]]*(;.*)?";
+	regexes[15] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(CMP)([A-Z]{2})(\\.P([0-9]+))?[[:space:]]*P([0-9]+)[[:space:]]*,[[:space:]]*P([0-9]+)[[:space:]]*=[[:space:]]*F([0-9]+)[[:space:]]*,[[:space:]]*F([0-9]*)[[:space:]]*(;.*)?";
+
+	regexes[3] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(CVRT)(\\.P([0-9]*))?[[:space:]]*F([0-9]+)[[:space:]]*=[[:space:]]*R([0-9]+)[[:space:]]*(;.*)?";
+	regexes[16] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(CVRT)(\\.P([0-9]*))?[[:space:]]*R([0-9]+)[[:space:]]*=[[:space:]]*F([0-9]+)[[:space:]]*(;.*)?";
+
+	regexes[4] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(MOV)(\\.P([0-9]+))?[[:space:]]*R([0-9]+)[[:space:]]*=[[:space:]]*R([0-9]+)[[:space:]]*(;.*)?";
+	regexes[17] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(MOV)(\\.P([0-9]+))?[[:space:]]*F([0-9]+)[[:space:]]*=[[:space:]]*F([0-9]+)[[:space:]]*(;.*)?";
+
+	regexes[5] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(LDC)(\\.P([0-9]+))?[[:space:]]*R([0-9]+)[[:space:]]*=[[:space:]]*([0-9]+)[[:space:]]*(;.*)?";
+	regexes[18] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(LDC)(\\.P([0-9]+))?[[:space:]]*F([0-9]+)[[:space:]]*=[[:space:]]*([.0-9]+)[[:space:]]*(;.*)?";
+
+	regexes[6] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(ST)(\\.P([0-9]+))?[[:space:]]*\\[R([0-9]+)\\][[:space:]]*=[[:space:]]*R([0-9]+)[[:space:]]*(;.*)?";
+	regexes[19] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(ST)(\\.P([0-9]+))?[[:space:]]*\\[R([0-9]+)\\][[:space:]]*=[[:space:]]*F([0-9]+)[[:space:]]*(;.*)?";
+
+	regexes[7] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(LD)(\\.P([0-9]+))?[[:space:]]*R([0-9]+)[[:space:]]*=[[:space:]]*\\[R([0-9]+)\\][[:space:]]*(;.*)?";
+	regexes[20] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(LD)(\\.P([0-9]+))?[[:space:]]*F([0-9]+)[[:space:]]*=[[:space:]]*\\[R([0-9]+)\\][[:space:]]*(;.*)?";
+
+	regexes[8] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(OUT)(\\.P([0-9]+))?[[:space:]]*R([0-9]+)[[:space:]]*(;.*)?";
+	regexes[21] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(OUT)(\\.P([0-9]+))?[[:space:]]*F([0-9]+)[[:space:]]*(;.*)?";
+
+	regexes[9] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(IN)(\\.P([0-9]+))?[[:space:]]*R([0-9]+)[[:space:]]*(;.*)?";
+	regexes[22] = "^[[:space:]]*(([A-Za-z0-9]+):)?[[:space:]]*(IN)(\\.P([0-9]+))?[[:space:]]*F([0-9]+)[[:space:]]*(;.*)?";
+
+	std::smatch mac;
+	unique_ptr< instruction> return_ptr;
+	
+	// ADD
+	if (regex_match(line, mac, std::regex(regexes[0], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_ADD2<INT>>(condition(mac.str(5)), integer, stoi(mac.str(6)), stoi(mac.str(7)), stoi(mac.str(8)));
+	}
+	else if (regex_match(line, mac, std::regex(regexes[13], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_ADD2<FL >>(condition(mac.str(5)), floating, stoi(mac.str(6)), stoi(mac.str(7)), stoi(mac.str(8)));
+	}
+
+	// SUB
+	else if (regex_match(line, mac, std::regex(regexes[10], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_SUB2<INT>>(condition(mac.str(5)), integer, stoi(mac.str(6)), stoi(mac.str(7)), stoi(mac.str(8)));
+	}
+	else if (regex_match(line, mac, std::regex(regexes[23], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_SUB2<FL>>(condition(mac.str(5)), floating, stoi(mac.str(6)), stoi(mac.str(7)), stoi(mac.str(8)));
+	}
+
+	// MUL
+	else if (regex_match(line, mac, std::regex(regexes[11], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_MUL2<INT>>(condition(mac.str(5)), integer, stoi(mac.str(6)), stoi(mac.str(7)), stoi(mac.str(8)));
+	}
+	else if (regex_match(line, mac, std::regex(regexes[24], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_MUL2<FL>>(condition(mac.str(5)), floating, stoi(mac.str(6)), stoi(mac.str(7)), stoi(mac.str(8)));
+	}
+
+	// DIV
+	else if (regex_match(line, mac, std::regex(regexes[12], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_DIV2<INT>>(condition(mac.str(5)), integer, stoi(mac.str(6)), stoi(mac.str(7)), stoi(mac.str(8)));
+	}
+	else if (regex_match(line, mac, std::regex(regexes[25], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_DIV2<FL>>(condition(mac.str(5)), floating, stoi(mac.str(6)), stoi(mac.str(7)), stoi(mac.str(8)));
+	}
+
+	// JMP
+	else if (regex_match(line, mac, std::regex(regexes[1], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_JMP>(mac.str(6), condition(mac.str(5)));
+	}
+
+	// CMP
+	else if (regex_match(line, mac, std::regex(regexes[2], std::regex_constants::icase)))
+	{
+		string cmp_relation = mac[4].str();
+		cmp_type e_relation;
+		if (cmp_relation == "EQ")
+			e_relation = eq;
+		if (cmp_relation == "NE")
+			e_relation = ne;
+		if (cmp_relation == "GE")
+			e_relation = ge;
+		if (cmp_relation == "GT")
+			e_relation = gt;
+		if (cmp_relation == "LE")
+			e_relation = le;
+		if (cmp_relation == "LT")
+			e_relation = lt;
+	
+		return_ptr = make_unique<instr_CMP<INT>>(condition(mac.str(6)), stoi(mac.str(7)), stoi(mac.str(8)), stoi(mac.str(9)), stoi(mac.str(10)), e_relation);
+	}
+	else if (regex_match(line, mac, std::regex(regexes[15], std::regex_constants::icase)))
+	{
+		string cmp_relation = mac[4].str();
+		cmp_type e_relation;
+		if (cmp_relation == "EQ")
+			e_relation = eq;
+		if (cmp_relation == "NE")
+			e_relation = ne;
+		if (cmp_relation == "GE")
+			e_relation = ge;
+		if (cmp_relation == "GT")
+			e_relation = gt;
+		if (cmp_relation == "LE")
+			e_relation = le;
+		if (cmp_relation == "LT")
+			e_relation = lt;
+		return_ptr = make_unique<instr_CMP<FL>>(condition(mac.str(6)), stoi(mac.str(7)), stoi(mac.str(8)), stoi(mac.str(9)), stoi(mac.str(10)), e_relation);
+	}
+
+	// CVRT
+	else if (regex_match(line, mac, std::regex(regexes[3], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_CVRT>(condition(mac.str(5)), integer, stoi(mac.str(6)), stoi(mac.str(7)));
+	}
+	else if (regex_match(line, mac, std::regex(regexes[16], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_CVRT>(condition(mac.str(5)), floating , stoi(mac.str(6)), stoi(mac.str(7)));
+	}
+
+	// MOV
+	else if (regex_match(line, mac, std::regex(regexes[17], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_MOV<FL>>(condition(mac.str(5)), stoi(mac.str(6)), stoi(mac.str(7)));
+	}
+	else if (regex_match(line, mac, std::regex(regexes[4], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_MOV<INT>>(condition(mac.str(5)), stoi(mac.str(6)), stoi(mac.str(7)));
+	}
+
+	// LDC
+	else if (regex_match(line, mac, std::regex(regexes[5], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_LDC<INT>>(condition(mac.str(5)), stoi(mac.str(6)), stoi(mac.str(7)));
+	}
+	else if (regex_match(line, mac, std::regex(regexes[18], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_LDC<FL>>(condition(mac.str(5)), stoi(mac.str(6)), stof(mac.str(7)));
+	}
+
+	// ST
+	else if (regex_match(line, mac, std::regex(regexes[6], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_LDST2<INT>>(condition(mac.str(5)), store, integer, stoi(mac.str(6)), stoi(mac.str(7)));
+	}
+	else if (regex_match(line, mac, std::regex(regexes[19], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_LDST2<FL>>(condition(mac.str(5)), store, floating, stoi(mac.str(6)), stoi(mac.str(7)));
+	}
+
+	// LD
+	else if (regex_match(line, mac, std::regex(regexes[7], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_LDST2<INT>>(condition(mac.str(5)), load, integer, stoi(mac.str(6)), stoi(mac.str(7)));
+	}
+	else if (regex_match(line, mac, std::regex(regexes[20], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_LDST2<FL>>(condition(mac.str(5)), load, floating, stoi(mac.str(6)), stoi(mac.str(7)));
+	}
+
+	// OUT
+	else if (regex_match(line, mac, std::regex(regexes[8], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_IO<INT>>(condition(mac.str(5)), out, stoi(mac.str(6)));
+	}
+	else if (regex_match(line, mac, std::regex(regexes[21], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_IO<FL>>(condition(mac.str(5)), out, stoi(mac.str(6)));
+	}
+
+	// IN
+	else if (regex_match(line, mac, std::regex(regexes[9], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_IO<INT>>(condition(mac.str(5)), in, stoi(mac.str(6)));
+	}
+	else if (regex_match(line, mac, std::regex(regexes[22], std::regex_constants::icase)))
+	{
+		return_ptr = make_unique<instr_IO<FL>>(condition(mac.str(5)), in, stoi(mac.str(6)));
+	}
+	else
+	{
+		size_t pos = line.find(';');
+
+		if( !( line == "" || pos != string::npos ))
+			line_cannot_be_parsed(fail, "\n\nOn line " + to_string(line_number) + ". Unknown instruction found.");
+			
+		return_ptr = make_unique<instruction>(-1);
+	}
+	
+	if (mac[2] != "")
+	{
+		string navesti = mac[2].str();
+		auto finding = navesti_given.find(navesti);
+		if (finding == navesti_given.end())
+		{
+			navesti_given.insert({ navesti, instr_number });
+		}
+		else
+		{
+			line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Navesti " + navesti + " is a double!");
+			return make_unique<instruction>(-1);
+		}		
+	}
+
+	return return_ptr;
+}
+
 // Calls parse_line on each line, exits if failure happened, pushes the instructions into the proper vector
 bool read_input(file_resource& in, vector< unique_ptr< instruction > >& out_vec, std::unordered_map<std::string, int>& navesti_given, std::vector<string>& navesti_needed)
 {
@@ -572,7 +814,10 @@ bool read_input(file_resource& in, vector< unique_ptr< instruction > >& out_vec,
 
 	while (getline(in.ifs, line))
 	{
-		unique_ptr<instruction> tmp = move(parse_line(line, line_num, navesti_given, navesti_needed, out_vec.size(), fail ));
+		unique_ptr<instruction> tmp = regextests(line, navesti_given, navesti_needed, out_vec.size(), line_num, fail);
+
+		//unique_ptr<instruction> tmp = move(parse_line(line, line_num, navesti_given, navesti_needed, out_vec.size(), fail ));
+
 		if (fail) // fail state occured, we are exiting the program
 			break;
 		if (tmp->get_condition() != -1) // if it's a valid instruction, we add it
@@ -600,9 +845,10 @@ int main(int argc, char**argv)
 	std::vector<string> navesti_needed;
 	
 	// Read input into instructions, already checking parameters and validity of parameters.
+	cout << ">> Parsing:\n   ";
 	bool fail_state = read_input(inFile, asmb_instructions, navesti_given, navesti_needed);
 	if (fail_state) return 0;
-	cout << endl << ">> Parsing is complete." << endl << endl;
+	cout << endl << "\n>> Parsing is complete." << endl << endl;
 
 	// We do a check of navesti needed and navesti provided
 	for (auto navesti : navesti_needed)
@@ -639,5 +885,6 @@ int main(int argc, char**argv)
 	}
 	
 	cout << "\n>> The end.\n\n";
+
 	return 0;
 }
