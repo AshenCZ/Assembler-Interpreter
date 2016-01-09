@@ -1,8 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <algorithm>
-#include <iterator>
 #include <vector>
 #include <unordered_map>
 #include <memory>
@@ -46,6 +44,14 @@ void line_cannot_be_parsed(bool& fail, string message)
 	fail = true;
 	cout << message << " Exit." << endl;
 }
+int condition(string cond)
+{
+	int ret = 1;
+	if (cond != "")
+		ret = stoi(cond); // stoi will not throw exceptions because regexes guarantee that it will be an integer
+	return ret;
+}
+
 void wrong_arguments(string instr, int num, int line_number, bool& fail)
 {
 	string a = "On line " + to_string(line_number);
@@ -71,7 +77,7 @@ int return_condition(string condition, int line_number, bool fail)
 }
 
 // Tokenizes one line (splits)
-int tokenize(string line, string (&words)[200]) 
+int tokenize(string line, string(&words)[200])
 {
 	int word_count = 0;
 	string word = "";
@@ -79,35 +85,35 @@ int tokenize(string line, string (&words)[200])
 	//Tokenizing = split into strings
 	for (size_t i = 0; i < line.length(); i++)
 	{
-		if (line[i] == ' ' && word.length() == 0) // no more spaces, we enter the next mode
+		if ( (line[i] == ' ' || line[i] == '\t') && word.length() == 0) // no more spaces, we enter the next mode
 		{
 			continue;
 		}
-		else if (line[i] == ' ' && word.length() != 0) // no more spaces, we enter the next mode
+		else if ((line[i] == ' ' || line[i] == '\t') && word.length() != 0) // no more spaces, we enter the next mode
 		{
 			words[word_count] = word;
 			word = "";
 			word_count++;
-		}
+			}
 		else if (line[i] == ',' && word.length() != 0) // no more spaces, we enter the next mode
 		{
 			words[word_count] = word;
 			word = "";
 			word_count++;
-		}
+			}
 		else if (line[i] == '=' && word.length() != 0) // no more spaces, we enter the next mode
 		{
 			words[word_count] = word;
 			word = "";
 			word_count++;
-		}
+			}
 		else if (line[i] == ';' && word.length() != 0) // no more spaces, we enter the next mode
 		{
 			words[word_count] = word;
 			word = "";
 			word_count++;
 			break;
-		}
+			}
 		else if (line[i] == ';' && word.length() == 0) // no more spaces, we enter the next mode
 		{
 			break;
@@ -135,9 +141,9 @@ int tokenize(string line, string (&words)[200])
 }
 
 /* Parses one line, by:
-	- tokenizing the line into strings (basically split)
-	- solving navesti and predicate statements
-	- recognizing the command and reading and checking its parameters
+   * tokenizing the line into strings (basically split)
+   * solving navesti and predicate statements
+   * recognizing the command and reading and checking its parameters
 */
 unique_ptr< instruction> parse_line(string line, int line_number, std::unordered_map<std::string, int>& navesti_given, std::vector<string>& navesti_needed, int instr_number, bool& fail)
 {
@@ -179,7 +185,7 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 		{
 			line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Navesti " + navesti + " is a double!");
 			return make_unique<instruction>(-1);
-		}
+			}
 		index = 1;
 	}
 
@@ -200,355 +206,352 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 	number_type nt;
 
 	try { // catching for stoi() exception, for converting numbers from P151
-		if (command_conditionless == "ADD" || command_conditionless == "SUB" ||
-			command_conditionless == "MUL" || command_conditionless == "DIV")
+	if (command_conditionless == "ADD" || command_conditionless == "SUB" ||
+	command_conditionless == "MUL" || command_conditionless == "DIV")
+	{
+		if (number_arguments != 3)
 		{
-			if (number_arguments != 3)
+			wrong_arguments(command_conditionless, number_arguments, line_number, fail);
+		}
+		else
+		{
+			string arg1 = words[index + 1];
+			string arg2 = words[index + 2];
+			string arg3 = words[index + 3];
+			if (arg1[0] == arg2[0] && arg1[0] == arg3[0])
 			{
-				wrong_arguments(command_conditionless, number_arguments, line_number, fail);
+				if (arg1[0] == 'R')
+				{
+					nt = integer;
+				}
+				else if (arg1[0] == 'F')
+					nt = floating;
+				else
+					line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of unkown type '" + arg1[0] + "' (not F or R).");
+
+				int s = stoi(arg1.substr(1, arg1.length() - 1));
+				int a1 = stoi(arg2.substr(1, arg2.length() - 1));
+				int a2 = stoi(arg3.substr(1, arg3.length() - 1));
+
+				if (s < 0 || s > 255 || a1 < 0 || a1 > 255 || a2 < 0 || a2 > 255)
+				{
+					line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Argument out of range.");
+				}
+
+				int cond = return_condition(condition, line_number, fail);
+
+				//cout << "Returning: " << "Codnition: " << cond << " store: " << s << " arg1: " << a1 << " arg2: " << a2 << " type: " << nt << endl;
+
+				if (command_conditionless == "ADD")
+				{
+					if (nt == floating)
+						return make_unique<instr_ADD2<FL>>(cond, nt, s, a1, a2);
+					else
+						return make_unique<instr_ADD2<INT>>(cond, nt, s, a1, a2);
+				}
+				else if (command_conditionless == "SUB")
+				{
+					if (nt == floating)
+						return make_unique<instr_SUB2<FL>>(cond, nt, s, a1, a2);
+					else
+						return make_unique<instr_SUB2<INT>>(cond, nt, s, a1, a2);
+				}
+				else if (command_conditionless == "MUL")
+				{
+					if (nt == floating)
+						return make_unique<instr_MUL2<FL>>(cond, nt, s, a1, a2);
+					else
+						return make_unique<instr_MUL2<INT>>(cond, nt, s, a1, a2);
+				}
+				else if (command_conditionless == "DIV")
+				{
+					if (nt == floating)
+						return make_unique<instr_DIV2<FL>>(cond, nt, s, a1, a2);
+					else
+						return make_unique<instr_DIV2<INT>>(cond, nt, s, a1, a2);
+				}
 			}
 			else
 			{
-				string arg1 = words[index + 1];
-				string arg2 = words[index + 2];
-				string arg3 = words[index + 3];
-				if (arg1[0] == arg2[0] && arg1[0] == arg3[0])
-				{
-					if (arg1[0] == 'R')
-					{
-						nt = integer;
-					}
-					else if (arg1[0] == 'F')
-						nt = floating;
-					else
-						line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of unkown type '" + arg1[0] + "' (not F or R).");
-
-					int s = stoi(arg1.substr(1, arg1.length() - 1));
-					int a1 = stoi(arg2.substr(1, arg2.length() - 1));
-					int a2 = stoi(arg3.substr(1, arg3.length() - 1));
-
-					if (s < 0 || s > 255 || a1 < 0 || a1 > 255 || a2 < 0 || a2 > 255)
-					{
-						line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Argument out of range.");
-					}
-
-					int cond = return_condition(condition, line_number, fail);
-
-					//cout << "Returning: " << "Codnition: " << cond << " store: " << s << " arg1: " << a1 << " arg2: " << a2 << " type: " << nt << endl;
-
-					if (command_conditionless == "ADD")
-					{
-						if (nt == floating)
-							return make_unique<instr_ADD2<FL>>(cond, nt, s, a1, a2);
-						else
-							return make_unique<instr_ADD2<INT>>(cond, nt, s, a1, a2);
-					}
-					else if (command_conditionless == "SUB")
-					{
-						if (nt == floating)
-							return make_unique<instr_SUB2<FL>>(cond, nt, s, a1, a2);
-						else
-							return make_unique<instr_SUB2<INT>>(cond, nt, s, a1, a2);
-					}
-					else if (command_conditionless == "MUL")
-					{
-						if (nt == floating)
-							return make_unique<instr_MUL2<FL>>(cond, nt, s, a1, a2);
-						else
-							return make_unique<instr_MUL2<INT>>(cond, nt, s, a1, a2);
-					}
-					else if (command_conditionless == "DIV")
-					{
-						if (nt == floating)
-							return make_unique<instr_DIV2<FL>>(cond, nt, s, a1, a2);
-						else
-							return make_unique<instr_DIV2<INT>>(cond, nt, s, a1, a2);
-					}
-				}
-				else
-				{
-					line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of ADD/SUB/MUL/DIV must be of the same type!");
-				}
+				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of ADD/SUB/MUL/DIV must be of the same type!");
 			}
 		}
-		else if (command_conditionless == "OUT" || command_conditionless == "IN")
+	}
+	else if (command_conditionless == "OUT" || command_conditionless == "IN")
+	{
+		if (number_arguments != 1)
 		{
-			if (number_arguments != 1)
-			{
-				wrong_arguments(command_conditionless, number_arguments, line_number, fail);
-			}
+			wrong_arguments(command_conditionless, number_arguments, line_number, fail);
+		}
 
-			string arg = words[index + 1];
-			int iarg = stoi(arg.substr(1, arg.length() - 1));
+		string arg = words[index + 1];
+		int iarg = stoi(arg.substr(1, arg.length() - 1));
 
 
-			if (iarg < 0 || iarg > 255)
+		if (iarg < 0 || iarg > 255)
+		{
+			line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Argument out of range.");
+		}
+
+		int cond = return_condition(condition, line_number, fail);
+
+		if (arg[0] == 'R')
+		{
+			nt = integer;
+		}
+		else if (arg[0] == 'F')
+			nt = floating;
+		else
+			line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of unkown type '" + arg[0] + "' (not F or R).");
+
+		//cout << "Returning: " << "Codnition: " << cond << " arg1: " << iarg << " type: " << nt << endl;
+
+		io_type cmd_type;
+		if (command_conditionless == "IN")
+			cmd_type = in;
+		else if (command_conditionless == "OUT")
+			cmd_type = out;
+
+		if (nt == floating)
+			return make_unique<instr_IO<FL>>(cond, cmd_type, iarg);
+		else
+			return make_unique<instr_IO<INT>>(cond, cmd_type, iarg);
+	}
+	else if (command_conditionless == "LDC" || command_conditionless == "ST" ||
+		command_conditionless == "LD")
+	{
+		if (number_arguments != 2)
+		{
+			wrong_arguments(command_conditionless, number_arguments, line_number, fail);
+		}
+		string arg1 = words[index + 1];
+		string arg2 = words[index + 2];
+		if (command_conditionless == "LDC")
+		{
+			arg2 = words[index + 1];
+		}
+		else if (command_conditionless == "LD")
+		{
+			arg2 = arg2.substr(1, arg2.length() - 2);
+		}
+		else if (command_conditionless == "ST")
+		{
+			arg1 = arg1.substr(1, arg1.length() - 2);
+		}
+
+		string check;
+		if (command_conditionless == "LD" || command_conditionless == "LDC")
+			check = arg1;
+		else
+			check = arg2;
+		if (check[0] == 'R')
+		{
+			nt = integer;
+		}
+		else if (check[0] == 'F')
+			nt = floating;
+		else
+			line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of unkown type '" + check[0] + "' (not F or R).");
+
+		int s = stoi(arg1.substr(1, arg1.length() - 1));
+		float  a1 = stof(arg2.substr(1, arg2.length() - 1));
+
+		if (command_conditionless == "LDC")
+		{
+			s = stoi(arg1.substr(1, arg1.length() - 1));
+			a1 = stof(words[index + 2]);
+		}
+		if (command_conditionless != "LDC")
+		{
+			if (s < 0 || s > 255 || a1 < 0 || a1 > 255)
 			{
 				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Argument out of range.");
 			}
-
-			int cond = return_condition(condition, line_number, fail);
-
-			if (arg[0] == 'R')
+		}
+		else
+		{
+			if (s < 0 || s > 255)
 			{
-				nt = integer;
+				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Argument out of range.");
 			}
-			else if (arg[0] == 'F')
-				nt = floating;
-			else
-				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of unkown type '" + arg[0] + "' (not F or R).");
+		}
 
-			//cout << "Returning: " << "Codnition: " << cond << " arg1: " << iarg << " type: " << nt << endl;
+		int cond = return_condition(condition, line_number, fail);
 
-			io_type cmd_type;
-			if (command_conditionless == "IN")
-				cmd_type = in;
-			else if (command_conditionless == "OUT")
-				cmd_type = out;
-
+		if (command_conditionless == "LD")
 			if (nt == floating)
-				return make_unique<instr_IO<FL>>(cond, cmd_type, iarg);
+				return make_unique<instr_LDST2<FL>>(cond, load, nt, s, (int)a1);
 			else
-				return make_unique<instr_IO<INT>>(cond, cmd_type, iarg);
-		}
-		else if (command_conditionless == "LDC" || command_conditionless == "ST" ||
-			command_conditionless == "LD")
+				return make_unique<instr_LDST2<INT>>(cond, load, nt, s, (int)a1);
+		else if (command_conditionless == "ST")
+			if (nt == floating)
+				return make_unique<instr_LDST2<FL>>(cond, store, nt, s, (int)a1);
+			else
+				return make_unique<instr_LDST2<INT>>(cond, store, nt, s, (int)a1);
+		else if (command_conditionless == "LDC")
 		{
-			if (number_arguments != 2)
-			{
-				wrong_arguments(command_conditionless, number_arguments, line_number, fail);
-			}
-			string arg1 = words[index + 1];
-			string arg2 = words[index + 2];
-			if (command_conditionless == "LDC")
-			{
-				arg2 = words[index + 1];
-			}
-			else if (command_conditionless == "LD")
-			{
-				arg2 = arg2.substr(1, arg2.length() - 2);
-			}
-			else if (command_conditionless == "ST")
-			{
-				arg1 = arg1.substr(1, arg1.length() - 2);
-			}
-			if (arg1[0] == arg2[0])
-			{
-				string check;
-				if (command_conditionless == "LD" || command_conditionless == "LDC")
-					check = arg1;
-				else
-					check = arg2;
-				if (check[0] == 'R')
-				{
-					nt = integer;
-				}
-				else if (check[0] == 'F')
-					nt = floating;
-				else
-					line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of unkown type '" + check[0] + "' (not F or R).");
-
-				int s = stoi(arg1.substr(1, arg1.length() - 1));
-				float  a1 = stof(arg2.substr(1, arg2.length() - 1));
-
-				if (command_conditionless == "LDC")
-				{
-					s = stoi(arg1.substr(1, arg1.length() - 1));
-					a1 = stof(words[index + 2]);
-				}
-
-				if (s < 0 || s > 255 || a1 < 0 || a1 > 255)
-				{
-					line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Argument out of range.");
-				}
-
-				int cond = return_condition(condition, line_number, fail);
-
-				//cout << "Returning: " << "Codnition: " << cond << " store: " << s << " arg1: " << a1 << " type: " << nt << endl;
-
-				if (command_conditionless == "LD")
-					if (nt == floating)
-						return make_unique<instr_LDST2<FL>>(cond, load, nt, s, (int)a1);
-					else
-						return make_unique<instr_LDST2<INT>>(cond, load, nt, s, (int)a1);
-				else if (command_conditionless == "ST")
-					if (nt == floating)
-						return make_unique<instr_LDST2<FL>>(cond, store, nt, s, (int)a1);
-					else
-						return make_unique<instr_LDST2<INT>>(cond, store, nt, s, (int)a1);
-				else if (command_conditionless == "LDC")
-				{
-					if (nt == floating)
-						return make_unique<instr_LDC<FL>>(cond, s, a1);
-					else
-					{
-						int b = (int)a1;
-						return make_unique<instr_LDC<INT>>(cond, s, b);
-					}
-				}
-
-
-			}
+			if (nt == floating)
+				return make_unique<instr_LDC<FL>>(cond, s, a1);
 			else
 			{
-				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of LD/ST/LDC must be of the same type!");
+				int b = (int)a1;
+				return make_unique<instr_LDC<INT>>(cond, s, b);
 			}
 		}
-		else if (command_conditionless == "CVRT")
+	}
+	else if (command_conditionless == "CVRT")
+	{
+		if (number_arguments != 2)
 		{
-			if (number_arguments != 2)
-			{
-				wrong_arguments("CVRT", number_arguments, line_number, fail);
-			}
-			string arg1 = words[index + 1];
-			string arg2 = words[index + 2];
-
-			if (arg1[0] != arg2[0])
-			{
-				if (arg2[0] == 'F')
-					nt = floating;
-				else if (arg2[0] == 'R')
-					nt = integer;
-				else
-					line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of CVRT is of unkown type!");
-
-				int a1 = stoi(arg1.substr(1, arg1.length() - 1));
-				int a2 = stoi(arg2.substr(1, arg2.length() - 1));
-
-				if (a2 < 0 || a2 > 255 || a1 < 0 || a1 > 255)
-				{
-					line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Argument out of range.");
-				}
-
-				int cond = return_condition(condition, line_number, fail);
-
-				//cout << "Returning: " << "Codnition: " << cond << " store: " << a1 << " arg1: " << a2 << " type: " << nt << endl;
-
-				return make_unique<instr_CVRT>(cond, nt, a2, a1);
-			}
-			else
-			{
-				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of CVRT must be of a different type!");
-			}
+			wrong_arguments("CVRT", number_arguments, line_number, fail);
 		}
-		else if (command_conditionless == "MOV")
+		string arg1 = words[index + 1];
+		string arg2 = words[index + 2];
+
+		if (arg1[0] != arg2[0])
 		{
-			if (number_arguments != 2)
-			{
-				wrong_arguments("MOV", number_arguments, line_number, fail);
-			}
-			string arg1 = words[index + 1];
-			string arg2 = words[index + 2];
-
-			if (arg1[0] == arg2[0])
-			{
-				if (arg2[0] == 'F')
-					nt = floating;
-				else if (arg2[0] == 'R')
-					nt = integer;
-				else
-					line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of MOV is of unkown type!");
-
-				int a1 = stoi(arg1.substr(1, arg1.length() - 1));
-				int a2 = stoi(arg2.substr(1, arg2.length() - 1));
-
-				if (a2 < 0 || a2 > 255 || a1 < 0 || a1 > 255)
-				{
-					line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Argument out of range.");
-				}
-
-				int cond = return_condition(condition, line_number, fail);
-
-				if (nt == floating)
-					return make_unique<instr_MOV<FL>>(cond, a1, a2);
-				else
-					return make_unique<instr_MOV<INT>>(cond, a1, a2);
-			}
-			else
-			{
-				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of MOV must be of the same type!");
-			}
-		}
-		else if (command_conditionless == "JMP")
-		{
-			if (number_arguments != 1)
-			{
-				wrong_arguments("JMP", number_arguments, line_number, fail);
-			}
-
-			int cond = return_condition(condition, line_number, fail);
-
-			string nav = words[index + 1];
-			//cout << "Returning: " << "Codnition: " << cond << " jumpto: " << nav << endl;
-
-			// we remember the need for this jumpto to be valid
-			navesti_needed.push_back(nav);
-
-			return make_unique<instr_JMP>(nav, cond);
-
-		}
-		else if (command_conditionless.substr(0, 3) == "CMP")
-		{
-			if (number_arguments != 4)
-			{
-				wrong_arguments("CMP", number_arguments, line_number, fail);
-			}
-
-			int cond = return_condition(condition, line_number, fail);
-
-			string pstr1 = words[index + 1];
-			string pstr2 = words[index + 2];
-			string arg1 = words[index + 3];
-			string arg2 = words[index + 4];
-
-			if (pstr1[0] != 'P' || pstr2[0] != 'P')
-				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". CMP has to have 2 predicates.");
-
-			if (arg1[0] != arg2[0])
-				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". CMP has to have 2 args of the same type.");
-
-			if (arg1[0] == 'F')
+			if (arg2[0] == 'F')
 				nt = floating;
-			else if (arg1[0] == 'R')
+			else if (arg2[0] == 'R')
 				nt = integer;
 			else
-				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Argument of unknown type.");
+				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of CVRT is of unkown type!");
 
-			int p1 = stoi(pstr1.substr(1, pstr1.length() - 1));
-			int p2 = stoi(pstr2.substr(1, pstr2.length() - 1));
 			int a1 = stoi(arg1.substr(1, arg1.length() - 1));
 			int a2 = stoi(arg2.substr(1, arg2.length() - 1));
 
-			if (p1 < 0 || p1 > 255 || p2 < 0 || p2 > 255 || a1 < 0 || a1 > 255 || a2 < 0 || a2 > 255)
+			if (a2 < 0 || a2 > 255 || a1 < 0 || a1 > 255)
 			{
 				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Argument out of range.");
 			}
 
-			string cmp_relation = command_conditionless.substr(3, 2);
+			int cond = return_condition(condition, line_number, fail);
 
-			//	cout << "Returning: " << "Codnition: " << cond << " predicates: " << p1 << p2 << " arg1: " << a1 << " arg2: " << a2 << " type: " << nt << tp << endl;
+			//cout << "Returning: " << "Codnition: " << cond << " store: " << a1 << " arg1: " << a2 << " type: " << nt << endl;
 
-			cmp_type e_relation;
+			return make_unique<instr_CVRT>(cond, nt, a2, a1);
+		}
+		else
+		{
+			line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of CVRT must be of a different type!");
+		}
+	}
+	else if (command_conditionless == "MOV")
+	{
+		if (number_arguments != 2)
+		{
+			wrong_arguments("MOV", number_arguments, line_number, fail);
+		}
+		string arg1 = words[index + 1];
+		string arg2 = words[index + 2];
 
-			if (cmp_relation == "EQ")
-				e_relation = eq;
-			if (cmp_relation == "NE")
-				e_relation = ne;
-			if (cmp_relation == "GE")
-				e_relation = ge;
-			if (cmp_relation == "GT")
-				e_relation = gt;
-			if (cmp_relation == "LE")
-				e_relation = le;
-			if (cmp_relation == "LT")
-				e_relation = lt;
+		if (arg1[0] == arg2[0])
+		{
+			if (arg2[0] == 'F')
+				nt = floating;
+			else if (arg2[0] == 'R')
+				nt = integer;
+			else
+				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of MOV is of unkown type!");
+
+			int a1 = stoi(arg1.substr(1, arg1.length() - 1));
+			int a2 = stoi(arg2.substr(1, arg2.length() - 1));
+
+			if (a2 < 0 || a2 > 255 || a1 < 0 || a1 > 255)
+			{
+				line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Argument out of range.");
+			}
+
+			int cond = return_condition(condition, line_number, fail);
 
 			if (nt == floating)
-				return make_unique<instr_CMP<FL>>(cond, p1, p2, a1, a2, e_relation);
-			if (nt == integer)
-				return make_unique<instr_CMP<INT>>(cond, p1, p2, a1, a2, e_relation);
-
+				return make_unique<instr_MOV<FL>>(cond, a1, a2);
+			else
+				return make_unique<instr_MOV<INT>>(cond, a1, a2);
 		}
+		else
+		{
+			line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Arguments of MOV must be of the same type!");
+		}
+	}
+	else if (command_conditionless == "JMP")
+	{
+		if (number_arguments != 1)
+		{
+			wrong_arguments("JMP", number_arguments, line_number, fail);
+		}
+
+		int cond = return_condition(condition, line_number, fail);
+
+		string nav = words[index + 1];
+		//cout << "Returning: " << "Codnition: " << cond << " jumpto: " << nav << endl;
+
+		// we remember the need for this jumpto to be valid
+		navesti_needed.push_back(nav);
+
+		return make_unique<instr_JMP>(nav, cond);
+	}
+	else if (command_conditionless.substr(0, 3) == "CMP")
+	{
+		if (number_arguments != 4)
+		{
+			wrong_arguments("CMP", number_arguments, line_number, fail);
+		}
+
+		int cond = return_condition(condition, line_number, fail);
+
+		string pstr1 = words[index + 1];
+		string pstr2 = words[index + 2];
+		string arg1 = words[index + 3];
+		string arg2 = words[index + 4];
+
+		if (pstr1[0] != 'P' || pstr2[0] != 'P')
+			line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". CMP has to have 2 predicates.");
+
+		if (arg1[0] != arg2[0])
+			line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". CMP has to have 2 args of the same type.");
+
+		if (arg1[0] == 'F')
+			nt = floating;
+		else if (arg1[0] == 'R')
+			nt = integer;
+		else
+			line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Argument of unknown type.");
+
+		int p1 = stoi(pstr1.substr(1, pstr1.length() - 1));
+		int p2 = stoi(pstr2.substr(1, pstr2.length() - 1));
+		int a1 = stoi(arg1.substr(1, arg1.length() - 1));
+		int a2 = stoi(arg2.substr(1, arg2.length() - 1));
+
+		if (p1 < 0 || p1 > 255 || p2 < 0 || p2 > 255 || a1 < 0 || a1 > 255 || a2 < 0 || a2 > 255)
+		{
+			line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Argument out of range.");
+		}
+
+		string cmp_relation = command_conditionless.substr(3, 2);
+
+		//	cout << "Returning: " << "Codnition: " << cond << " predicates: " << p1 << p2 << " arg1: " << a1 << " arg2: " << a2 << " type: " << nt << tp << endl;
+
+		cmp_type e_relation;
+
+		if (cmp_relation == "EQ")
+			e_relation = eq;
+		if (cmp_relation == "NE")
+			e_relation = ne;
+		if (cmp_relation == "GE")
+			e_relation = ge;
+		if (cmp_relation == "GT")
+			e_relation = gt;
+		if (cmp_relation == "LE")
+			e_relation = le;
+		if (cmp_relation == "LT")
+			e_relation = lt;
+
+		if (nt == floating)
+			return make_unique<instr_CMP<FL>>(cond, p1, p2, a1, a2, e_relation);
+		if (nt == integer)
+			return make_unique<instr_CMP<INT>>(cond, p1, p2, a1, a2, e_relation);
+	}
 	}
 	catch (invalid_argument e)
 	{
@@ -556,7 +559,7 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 		cout << "On line " << line_number << " selected index is not a number. Exiting program." << endl;
 		return make_unique<instruction>(-1);
 	}
-	
+
 	// if it is not a valid instruction
 	if (fail == false)
 		line_cannot_be_parsed(fail, "On line " + to_string(line_number) + ". Invalid command found.");
@@ -564,17 +567,11 @@ unique_ptr< instruction> parse_line(string line, int line_number, std::unordered
 	return make_unique<instruction>(-1);
 }
 
-int condition(string cond)
-{
-	int ret = 1;
-	if (cond != "")
-		ret = stoi(cond);
-	return ret;
-}
-
+// Parses with regexes, clean but slow. 
 unique_ptr< instruction> regextests(string line, std::unordered_map<std::string, int>& navesti_given, std::vector<string>& navesti_needed, int instr_number, int line_number, bool& fail)
 {
-	// convert all to uppercase
+	// convert all to uppercase - because compatibility with == (like EQ, GE, LT of CMP instruction)
+	// regexes do ignore case anyway
 	for (size_t i = 0; i < line.length(); i++)
 	{
 		line[i] = toupper(line[i]);
@@ -814,14 +811,20 @@ bool read_input(file_resource& in, vector< unique_ptr< instruction > >& out_vec,
 
 	while (getline(in.ifs, line))
 	{
-		unique_ptr<instruction> tmp = regextests(line, navesti_given, navesti_needed, out_vec.size(), line_num, fail);
+		// Commenting lines switches the two methods.
 
-		//unique_ptr<instruction> tmp = move(parse_line(line, line_num, navesti_given, navesti_needed, out_vec.size(), fail ));
+		// Newer version, really easy to parse, but takes a lot of time.
+		//unique_ptr<instruction> tmp = regextests(line, navesti_given, navesti_needed, out_vec.size(), line_num, fail);
 
-		if (fail) // fail state occured, we are exiting the program
+		// Old version, A LOT faster and ugly, is found commented out at the end
+		unique_ptr<instruction> tmp = move(parse_line(line, line_num, navesti_given, navesti_needed, out_vec.size(), fail ));
+
+		if (fail) // fail state occured, we are exiting the program, this could also be solved with exceptions
 			break;
+
 		if (tmp->get_condition() != -1) // if it's a valid instruction, we add it
 			out_vec.push_back(move(tmp));
+
 		line_num++;
 	}
 

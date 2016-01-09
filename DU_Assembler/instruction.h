@@ -74,7 +74,7 @@ class instruction
 
 	protected:
 		int condition_; // do this is Px
-		virtual void p_execute(ProgramData& prg_data) { std::cout << "huhueahehahe" << std::endl; };
+		virtual void p_execute(ProgramData& prg_data) {};
 };
 class instr_Binary : public instruction
 {
@@ -117,7 +117,6 @@ protected:
 	std::string where_to_jump_;
 	void p_execute(ProgramData& prg_data)
 	{
-		std::cout << "Jumping to " << where_to_jump_ << std::endl;
 		// find where to jump and if the condition applies, jump
 		auto ret = prg_data.navesti->find(where_to_jump_);
 
@@ -241,7 +240,6 @@ template<typename OP> class instr_DIV2 : public instr_Binary
 			typename OP::vtype arg2 = OP::get(prg_data, arg2_);
 			if (arg2 == 0)
 			{
-				std::cout << "DIV operation failed." << std::endl;
 				throw(assembler_exception("DIV's arguments were " + std::to_string(arg1) + " / " + std::to_string(arg2)));
 			}
 			else
@@ -268,8 +266,7 @@ protected:
 			int from = prg_data.I_register->at(arg_); // R20 = 110
 			if (from > 255)
 			{
-				std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
-				throw(assembler_exception("Index was " + std::to_string(from)));
+				throw(assembler_exception("Instruction LD/ST on instruction number " + to_string(prg_data.prg_counter) + " has failed. Index is too high. The index was " + std::to_string(from)));
 				return;
 			}
 			// MOV F15 = [110] 
@@ -282,8 +279,7 @@ protected:
 			int to = prg_data.I_register->at(store_); // R20 = 110
 			if (to > 255)
 			{
-				std::cout << "Instruction LD/ST on line TODO has failed. Index is too high." << std::endl;
-				throw(assembler_exception("Index was " + std::to_string(to)));
+				throw(assembler_exception("Instruction LD/ST on line TODO has failed. Index is too high. The index was " + std::to_string(to)));
 				return;
 			}
 			// R15 = [110] 
